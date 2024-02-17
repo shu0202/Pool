@@ -12,6 +12,8 @@ import {
 import TouchableScale from "react-native-touchable-scale";
 import { FIREBASE_AUTH } from "../../firebaseConfig";
 import { signInWithEmailAndPassword } from "firebase/auth";
+import { initializeAuth, getReactNativePersistence } from 'firebase/auth';
+import ReactNativeAsyncStorage from '@react-native-async-storage/async-storage';
 
 const LoginScreen = ({ navigation }) => {
   const [email, setEmail] = useState("");
@@ -23,11 +25,11 @@ const LoginScreen = ({ navigation }) => {
   const handleLogin = async () => {
     setLoading(true);
     try {
-      const response = await signInWithEmailAndPassword(auth, email, password);
+      const response = await signInWithEmailAndPassword(FIREBASE_AUTH, email, password);
       console.log(response);
     } catch (error) {
       console.log(error);
-      alert("Sign up failed: " + error.message);
+      alert("Sign in failed: " + error.message);
     } finally {
       setLoading(false);
     }
