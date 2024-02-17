@@ -17,6 +17,9 @@ class InvestmentPool {
         }
         this.totalAmount += amount;
     }
+    setPaybackTime(newPaybackTime) {
+        this.paybackTime = newPaybackTime;
+    }
     // Method to calculate and distribute returns to contributors (for Interest Pools)
     distributeReturns() {
         this.contributors.forEach(contributor => {

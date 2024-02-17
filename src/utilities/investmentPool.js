@@ -4,7 +4,7 @@ class InvestmentPool {
         this.creatorId = creatorId; // UserID of the pool creator
         this.totalAmount = totalAmount; // Total amount currently in the pool
         this.interestRate = interestRate; // Interest rate for the pool (applicable for Interest Pools only)
-        this.paybackTime = paybackTime; // Expected payback time
+        this.paybackTime = paybackTime; // Expected payback time in days
         this.contributors = contributors; // Array of objects { userId, amountContributed }
     }
     // Method to add a contributor to the pool
@@ -17,6 +17,22 @@ class InvestmentPool {
             this.contributors.push({ userId, amountContributed: amount });
         }
         this.totalAmount += amount;
+    }
+
+    // Method to set the interest rate for the pool
+    // Ensure this method is callable only by the pool creator or system admin
+    setInterestRate(newRate) {
+        this.interestRate = newRate;
+    }
+
+    setPaybackTime(newPaybackTime) {
+        this.paybackTime = newPaybackTime;
+    }
+
+    calculateLoanReturnAmount(amount) {
+        const timeInYears = this.paybackTime / 365;
+        const amountToBeRepaid = amount * (1 + this.interestRate * timeInYears);
+        return amountToBeRepaid;
     }
     // Method to calculate and distribute returns to contributors (for Interest Pools)
     distributeReturns() {
