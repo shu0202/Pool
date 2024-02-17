@@ -1,3 +1,5 @@
+import { doc, setDoc } from "firebase/firestore"
+
 class InvestmentPool {
     constructor(poolId, creatorId, poolType, totalAmount = 0, paybackTime, contributors = [], loanRequests = []) {
         this.poolId = poolId; // Unique identifier for the pool
@@ -88,5 +90,16 @@ class InvestmentPool {
             contributors: this.contributors
         };
 
+    }
+
+    // Function to save an FriendsPool to Firestore
+    async saveInvestmentPoolToFirestore(pool) {
+        const poolData = pool.toFirestore();
+        try {
+            await setDoc(doc(FIREBASE_DB, "investmentPools", pool.poolId), poolData);
+            console.log("InvestmentPool successfully saved to Firestore!");
+        } catch (error) {
+            console.error("Error saving InvestmentPool to Firestore: ", error);
+        }
     }
 }
