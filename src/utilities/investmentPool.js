@@ -1,13 +1,15 @@
 import { doc, setDoc } from "firebase/firestore"
+import { FIREBASE_DB } from "./firebase";
 
 class InvestmentPool {
-    constructor(poolId, creatorId, poolType, totalAmount = 0, interestRate, paybackTime, contributors = []) {
+    constructor(poolId, creatorId, poolType, totalAmount = 0, interestRate, paybackTime, contributors = [], loanRequests = []) {
         this.poolId = poolId; // Unique identifier for the pool
         this.creatorId = creatorId; // UserID of the pool creator
         this.totalAmount = totalAmount; // Total amount currently in the pool
         this.interestRate = interestRate; // Interest rate for the pool (applicable for Interest Pools only)
         this.paybackTime = paybackTime; // Expected payback time in days
         this.contributors = contributors; // Array of objects { userId, amountContributed }
+        this.loanRequests = loanRequests || [];
     }
     // Method to add a contributor to the pool
     addContributor(userId, amount) {
@@ -79,6 +81,7 @@ class InvestmentPool {
         if (approvalCount >= requiredApprovals) {
             request.status = 'Approved';
             // Logic to transfer money to the requester...
+            this.totalAmount -= request.amountRequested
         }
     }
 
@@ -95,22 +98,55 @@ class InvestmentPool {
             // updateUserWallet(contributor.userId, returnAmount);
         });
     }
+    // Method to allow contributors to withdraw their contributions before the pool reaches its payback time, assuming the pool rules allow for such withdrawals.
+    withdrawContribution(userId, amount) {
+        // Find the contributor in the pool
+        const contributorIndex = this.contributors.findIndex(contributor => contributor.userId === userId);
+        if (contributorIndex === -1) {
+            throw new Error("Contributor not found.");
+        }
+        const contributor = this.contributors[contributorIndex];
+
+        // Check if the contributor has enough balance to withdraw
+        if (contributor.amountContributed < amount) {
+            throw new Error("Insufficient contribution balance for withdrawal.");
+        }
+
+        // Update the contributor's contribution and the pool's total amount
+        contributor.amountContributed -= amount;
+        this.totalAmount -= amount;
+
+        console.log(`Contributor ${userId} withdrew ${amount} from the pool.`);
+
+    }
+
     // Convert pool object to a database-friendly format
     toFirestore() {
         return {
             poolId: this.poolId,
             creatorId: this.creatorId,
+            poolType: this.poolType,
             totalAmount: this.totalAmount,
             interestRate: this.interestRate,
             paybackTime: this.paybackTime,
-            contributors: this.contributors
+            contributors: this.contributors.map(contributor => ({
+                userId: contributor.userId,
+                amountContributed: contributor.amountContributed
+            })),
+            loanRequests: this.loanRequests.map(request => ({
+                requestId: request.requestId,
+                userId: request.userId,
+                amountRequested: request.amountRequested,
+                status: request.status,
+                approvals: request.approvals
+            }))
         };
     }
     // Function to save an InvestmentPool to Firestore
-    async saveInvestmentPoolToFirestore(pool) {
-        const poolData = pool.toFirestore();
+    async saveToFirestore() {
+        const poolData = this.toFirestore(); // Use this instance's data
         try {
-            await setDoc(doc(FIREBASE_DB, "investmentPools", pool.poolId), poolData);
+            await setDoc(doc(FIREBASE_DB, "investmentPools", this.poolId), poolData);
             console.log("InvestmentPool successfully saved to Firestore!");
         } catch (error) {
             console.error("Error saving InvestmentPool to Firestore: ", error);
