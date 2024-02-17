@@ -7,6 +7,7 @@ import {
   TouchableWithoutFeedback,
   Keyboard,
   ActivityIndicator,
+  KeyboardAvoidingView,
 } from "react-native";
 import TouchableScale from "react-native-touchable-scale";
 import { FIREBASE_AUTH } from "../../firebaseConfig";
@@ -33,37 +34,46 @@ const LoginScreen = ({ navigation }) => {
   };
 
   return (
-    <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
-      <View style={styles.container}>
-        <Text style={styles.title}>Sign In To Pool</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Email"
-          value={email}
-          onChangeText={setEmail}
-          keyboardType="email-address"
-        />
-        <TextInput
-          style={styles.input}
-          placeholder="Password"
-          value={password}
-          onChangeText={setPassword}
-          secureTextEntry
-        />
+    <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+        <View style={styles.container}>
+          <View style={styles.contentContainer}>
+            <Text style={styles.title}>Sign In To Pool</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Email"
+              value={email}
+              onChangeText={setEmail}
+              keyboardType="email-address"
+            />
+            <TextInput
+              style={styles.input}
+              placeholder="Password"
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry
+            />
 
-        {loading ? (
-          <ActivityIndicator size="large" color="#FFFFFF" />
-        ) : (
-          <TouchableScale style={styles.buttonContainer} onPress={handleLogin}>
-            <Text style={styles.buttonText}>Login</Text>
-          </TouchableScale>
-        )}
+            {loading ? (
+              <ActivityIndicator size="large" color="#FFFFFF" />
+            ) : (
+              <TouchableScale
+                style={styles.buttonContainer}
+                onPress={handleLogin}
+              >
+                <Text style={styles.buttonText}>Login</Text>
+              </TouchableScale>
+            )}
 
-        <TouchableScale onPress={() => navigation.navigate("SignUp")}>
-          <Text style={styles.switchText}>Don't have an account? Sign Up</Text>
-        </TouchableScale>
-      </View>
-    </TouchableWithoutFeedback>
+            <TouchableScale onPress={() => navigation.navigate("SignUp")}>
+              <Text style={styles.switchText}>
+                Don't have an account? Sign Up
+              </Text>
+            </TouchableScale>
+          </View>
+        </View>
+      </TouchableWithoutFeedback>
+    </KeyboardAvoidingView>
   );
 };
 
@@ -74,6 +84,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: "#0074D9",
     padding: 20,
+  },
+  contentContainer: {
+    width: "100%", // Ensure the container takes the full width
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
   },
   title: {
     fontSize: 26,
