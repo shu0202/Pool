@@ -8,6 +8,8 @@ import LoginScreen from "../../screens/LoginScreen";
 import FriendlyPoolsScreen from "../../screens/FriendlyPoolsScreen"; // Placeholder, replace with actual import
 import InvestmentPoolsScreen from "../../screens/InvestmentPoolsScreen"; // Placeholder, replace with actual import
 import SettingsPage from "../../screens/SettingsPage";
+import SplashScreen from "../../screens/SplashScreen";
+
 import { Ionicons } from "@expo/vector-icons";
 
 import { onAuthStateChanged } from "firebase/auth";
@@ -48,43 +50,20 @@ function InsideNavigator() {
 }
 
 function AppNavigator() {
-  const [user, setUser] = useState(null);
-
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(FIREBASE_AUTH, (currentUser) => {
-      console.log("user", currentUser);
-      setUser(currentUser);
-    });
-    return () => unsubscribe();
-  }, []);
-
   return (
     <NavigationContainer>
-      <Stack.Navigator
-        initialRouteName="Login"
-        screenOptions={{ headerShown: false }}
-      >
-        {user ? (
-          <>
-            {/* InsideNavigator now acts as the main entry point for authenticated users */}
-            <Stack.Screen
-              name="Inside"
-              component={InsideNavigator}
-              options={{ headerShown: false }}
-            />
-            {/* SettingsPage is part of the stack but not in the tabs */}
-            <Stack.Screen
-              name="Settings"
-              component={SettingsPage}
-              options={{ headerShown: false }}
-            />
-          </>
-        ) : (
-          <>
-            <Stack.Screen name="Login" component={LoginScreen} />
-            <Stack.Screen name="SignUp" component={SignUpScreen} />
-          </>
-        )}
+      <Stack.Navigator screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="Splash" component={SplashScreen} />
+        <Stack.Screen name="Auth" options={{ headerShown: false }}>
+          {() => (
+            <Stack.Navigator screenOptions={{ headerShown: false }}>
+              <Stack.Screen name="Login" component={LoginScreen} />
+              <Stack.Screen name="SignUp" component={SignUpScreen} />
+            </Stack.Navigator>
+          )}
+        </Stack.Screen>
+        <Stack.Screen name="Inside" component={InsideNavigator} />
+        <Stack.Screen name="Settings" component={SettingsPage} />
       </Stack.Navigator>
     </NavigationContainer>
   );

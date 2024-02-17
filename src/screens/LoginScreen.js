@@ -8,12 +8,21 @@ import {
   Keyboard,
   ActivityIndicator,
   KeyboardAvoidingView,
+<<<<<<< HEAD
 } from 'react-native';
 import TouchableScale from 'react-native-touchable-scale';
 import { FIREBASE_AUTH } from '../../firebaseConfig';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { Ionicons } from '@expo/vector-icons'; // Make sure to have this installed
 import { Image, /* other components */ } from 'react-native';
+=======
+} from "react-native";
+import TouchableScale from "react-native-touchable-scale";
+import { FIREBASE_AUTH } from "../../firebaseConfig";
+import { signInWithEmailAndPassword } from "firebase/auth";
+import { initializeAuth, getReactNativePersistence } from 'firebase/auth';
+import ReactNativeAsyncStorage from '@react-native-async-storage/async-storage';
+>>>>>>> 71e653dc64c1a77628d7c50dc325418e00110d6e
 
 const LoginScreen = ({ navigation }) => {
   const [email, setEmail] = useState('');
@@ -25,11 +34,15 @@ const LoginScreen = ({ navigation }) => {
   const handleLogin = async () => {
     setLoading(true);
     try {
-      const response = await signInWithEmailAndPassword(auth, email, password);
+      const response = await signInWithEmailAndPassword(FIREBASE_AUTH, email, password);
       console.log(response);
     } catch (error) {
       console.log(error);
+<<<<<<< HEAD
       alert('Sign up failed: ' + error.message);
+=======
+      alert("Sign in failed: " + error.message);
+>>>>>>> 71e653dc64c1a77628d7c50dc325418e00110d6e
     } finally {
       setLoading(false);
     }

@@ -1,65 +1,104 @@
-import React from "react";
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
-import { FIREBASE_AUTH } from "../../firebaseConfig";
-import Header from '../components/AppHeader'; // Adjust the import path as necessary
-import Ionicons from "@expo/vector-icons/Ionicons";
-
-const auth = FIREBASE_AUTH;
+import React, { useState, useEffect } from "react";
+import { ScrollView, View, Text, StyleSheet, Dimensions } from "react-native";
+import { LineChart } from "react-native-chart-kit";
+import Header from "../components/AppHeader";
+import { fetchInvestmentData } from "../utilities/calcTotalInvest"; // Adjust the import path
 
 const HomeScreen = ({ navigation }) => {
-const headerOptions = {
-  left: [
-    {
-      icon: "settings",
-      onPress: () => navigation.navigate("Settings"),
-    },
-  ],
-  right: [
-    {
-      icon: "notifications",
-      onPress: () => console.log("Notifications Pressed"),
-    },
-  ],
-};
+  const [totalInvested, setTotalInvested] = useState(0);
+
+  const headerOptions = {
+    left: [
+      {
+        icon: "settings",
+        onPress: () => navigation.navigate("Settings"),
+      },
+    ],
+    right: [
+      {
+        icon: "notifications",
+        onPress: () => console.log("Notifications Pressed"),
+      },
+    ],
+  };
+
 
   return (
-    <View style={{ flex: 1 }}>
+    <View style={styles.pageContainer}>
       <Header options={headerOptions} />
-      <View style={styles.container}>
-        <Text style={styles.welcomeText}>Welcome to the Home Screen!</Text>
-      </View>
+      <ScrollView contentContainerStyle={styles.contentContainer}>
+        <View style={styles.dashboardSummary}>
+          <Text style={styles.sectionTitle}>Dashboard Summary</Text>
+        </View>
+        <View style={styles.notificationsSection}>
+          <Text style={styles.sectionTitle}>Notifications</Text>
+        </View>
+        <View style={styles.myPoolsOverview}>
+          <Text style={styles.sectionTitle}>My Pools Overview</Text>
+        </View>
+        <View style={styles.discoverPools}>
+          <Text style={styles.sectionTitle}>Discover Pools</Text>
+        </View>
+      </ScrollView>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
+  pageContainer: {
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
     backgroundColor: "#022D3B",
   },
-  welcomeText: {
+  contentContainer: {
+    padding: 20,
+    alignItems: "center",
+  },
+  sectionTitle: {
     fontSize: 20,
-    textAlign: "center",
-    margin: 10,
     fontWeight: "bold",
-  },
-  logoutButton: {
-    marginTop: 20,
-    backgroundColor: "#DD4B39", // Google's Material Design red color
-    padding: 10,
-    borderRadius: 20,
-    elevation: 4,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-  },
-  logoutButtonText: {
     color: "#FFF",
-    fontWeight: "bold",
+    marginBottom: 10,
   },
+  dashboardSummary: {
+    width: "90%",
+    backgroundColor: "rgba(255, 255, 255, 0.8)",
+    padding: 20,
+    borderRadius: 20,
+    marginBottom: 20,
+  },
+  notificationsSection: {
+    width: "90%",
+    minHeight: 100,
+    backgroundColor: "rgba(255, 255, 255, 0.7)",
+    padding: 20,
+    borderRadius: 20,
+    marginBottom: 20,
+  },
+  myPoolsOverview: {
+    width: "90%",
+    minHeight: 150,
+    backgroundColor: "rgba(255, 255, 255, 0.6)",
+    padding: 20,
+    borderRadius: 20,
+    marginBottom: 20,
+  },
+  discoverPools: {
+    width: "90%",
+    minHeight: 120,
+    backgroundColor: "rgba(255, 255, 255, 0.5)",
+    padding: 20,
+    borderRadius: 20,
+    marginBottom: 20,
+  },
+  communityFeatures: {
+    width: "90%",
+    minHeight: 140,
+    backgroundColor: "rgba(255, 255, 255, 0.4)",
+    padding: 20,
+    borderRadius: 20,
+    marginBottom: 20,
+  },
+  // Additional styles...
 });
 
 export default HomeScreen;

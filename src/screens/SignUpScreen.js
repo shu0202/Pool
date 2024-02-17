@@ -10,8 +10,9 @@ import {
   KeyboardAvoidingView,
 } from "react-native";
 import TouchableScale from "react-native-touchable-scale";
-import { FIREBASE_AUTH } from "../../firebaseConfig";
+import { FIREBASE_AUTH, FIREBASE_APP } from "../../firebaseConfig";
 import { createUserWithEmailAndPassword } from "firebase/auth";
+import { setDoc, doc, collection, getFirestore } from "firebase/firestore";
 
 const SignUpScreen = ({ navigation }) => {
   const [email, setEmail] = useState("");
@@ -23,12 +24,14 @@ const SignUpScreen = ({ navigation }) => {
   const handleSignUp = async () => {
     setLoading(true);
     try {
-      const response = await createUserWithEmailAndPassword(
-        auth,
-        email,
-        password
-      );
-      console.log(response);
+      const response = await createUserWithEmailAndPassword(auth, email, password);
+      console.log(response.user.uid, email);
+      const userId = response.user.uid;
+      const db = getFirestore(FIREBASE_APP);
+      await setDoc(doc(collection(db, "Users"), userId), {
+        email: email,
+        investment: 0,
+      });
       alert("Account created! Please login.");
       navigation.navigate("Login");
     } catch (error) {

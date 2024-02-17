@@ -1,10 +1,13 @@
+import { doc, setDoc } from "firebase/firestore"
+
 class InvestmentPool {
-    constructor(poolId, creatorId, poolType, totalAmount = 0, paybackTime, contributors = []) {
+    constructor(poolId, creatorId, poolType, totalAmount = 0, paybackTime, contributors = [], loanRequests = []) {
         this.poolId = poolId; // Unique identifier for the pool
         this.creatorId = creatorId; // UserID of the pool creator
         this.totalAmount = totalAmount; // Total amount currently in the pool
         this.paybackTime = paybackTime; // Expected payback time
         this.contributors = contributors; // Array of objects { userId, amountContributed }
+        this.loanRequests = loanRequests;
     }
     // Method to add a contributor to the pool
     addContributor(userId, amount) {
@@ -28,6 +31,55 @@ class InvestmentPool {
             // updateUserWallet(contributor.userId, returnAmount);
         });
     }
+    requestLoan(userId, amountRequested) {
+        const request = {
+            request: this.generateRequestId(),
+            userId: userId,
+            amountRequested: amountRequested,
+            status: "Pending", // Initial status of the loan request
+            approvals: {}, // Object to track approvals from contributors
+        };
+        // Initialize all approvals to false
+        this.contributors.forEach(contributor => {
+            if (contributor.userId !== userId) {
+                request.approvals[contributor.userId] = false;
+            }
+        });
+        this.loanRequests.push(request);
+        return request;
+    }
+
+    // Method for a contributor to approve a loan request
+    approveLoanRequest(requestId, contributorUserId) {
+        const request = this.loanRequests.find(req => req.requestId === requestId);
+        if (!request) {
+            throw new Error('Loan request not found.');
+        }
+
+        if (request.status !== 'Pending') {
+            throw new Error('This request has already been processed.');
+        }
+
+        // Record approval
+        if (request.approvals.hasOwnProperty(contributorUserId)) {
+            request.approvals[contributorUserId] = true;
+        }
+
+        // Check if the request meets the approval criteria
+        this.checkApprovalCriteria(request);
+    }
+    // Method to check if a loan request meets the approval criteria
+    checkApprovalCriteria(request) {
+        const totalContributors = Object.keys(request.approvals).length;
+        const approvalsReceived = Object.values(request.approvals).filter(approval => approval).length;
+
+        // Example criterion: More than half of the contributors must approve
+        if (approvalsReceived > totalContributors / 2) {
+            request.status = 'Approved';
+            // Logic for transferring the loan amount to the requester could go here
+        }
+    }
+
     // Convert pool object to a database-friendly format
     toFirestore() {
         return {
@@ -37,5 +89,17 @@ class InvestmentPool {
             paybackTime: this.paybackTime,
             contributors: this.contributors
         };
+
+    }
+
+    // Function to save an FriendsPool to Firestore
+    async saveInvestmentPoolToFirestore(pool) {
+        const poolData = pool.toFirestore();
+        try {
+            await setDoc(doc(FIREBASE_DB, "investmentPools", pool.poolId), poolData);
+            console.log("InvestmentPool successfully saved to Firestore!");
+        } catch (error) {
+            console.error("Error saving InvestmentPool to Firestore: ", error);
+        }
     }
 }
