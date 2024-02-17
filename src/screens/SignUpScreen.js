@@ -29,7 +29,8 @@ const SignUpScreen = ({ navigation }) => {
         password
       );
       console.log(response);
-      alert("Check your email!");
+      alert("Account created! Please login.");
+      navigation.navigate("Login");
     } catch (error) {
       console.log(error);
       alert("Sign up failed: " + error.message);

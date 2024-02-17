@@ -1,43 +1,60 @@
-import React from "react";
-import { useState } from "react";
+import React, { useEffect, useState } from "react"; // Combine the import statements for useState and useEffect
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { NavigationContainer } from "@react-navigation/native";
 import SignUpScreen from "../../screens/SignUpScreen";
 import HomeScreen from "../../screens/HomeScreen";
 import LoginScreen from "../../screens/LoginScreen";
 
-const Stack = createNativeStackNavigator();
+import { onAuthStateChanged } from "firebase/auth"; // Removed User as it's not used here
+import { FIREBASE_AUTH } from "../../../firebaseConfig";
 
-const InsideStack = createNativeStackNavigator();
+const Stack = createNativeStackNavigator();
 
 function InsideNavigator() {
   return (
-    <InsideStack.Navigator>
-      <InsideStack.Screen name="Overview" component={HomeScreen} />
-    </InsideStack.Navigator>
+    <Stack.Navigator>
+      <Stack.Screen name="Overview" component={HomeScreen} />
+    </Stack.Navigator>
   );
 }
 
 function AppNavigator() {
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState(null); // Simplified the type to null for demonstration
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(FIREBASE_AUTH, (currentUser) => {
+      console.log("user", currentUser);
+      setUser(currentUser);
+    });
+    // Cleanup the subscription
+    return () => unsubscribe();
+  }, []); // Added empty dependency array to ensure effect runs only once on mount
+
   return (
     <NavigationContainer>
       <Stack.Navigator initialRouteName="SignUp">
-        <Stack.Screen
-          name="Login"
-          component={LoginScreen}
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen
-          name="SignUp"
-          component={SignUpScreen}
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen
-          name="Home"
-          component={HomeScreen}
-          options={{ title: "Dashboard" }}
-        />
+        {user ? (
+          <>
+            <Stack.Screen
+              name="Inside"
+              component={InsideNavigator}
+              options={{ title: "Dashboard" }}
+            />
+          </>
+        ) : (
+          <>
+            <Stack.Screen
+              name="Login"
+              component={LoginScreen}
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="SignUp"
+              component={SignUpScreen}
+              options={{ headerShown: false }}
+            />
+          </>
+        )}
       </Stack.Navigator>
     </NavigationContainer>
   );
