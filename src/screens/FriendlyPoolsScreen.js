@@ -4,16 +4,14 @@ import Header from '../components/AppHeader'; // Adjust the import path as neces
 
 const FriendlyPools = () => {
     const headerOptions = {
-      left: [
-        { text: "Settings", onPress: () => navigation.navigate("Settings") }, // Navigate to SettingsPage
-      ],
       right: [
         {
-          text: "Notifications",
-          onPress: () => console.log("Notifications Pressed"),
+          icon: "add-circle",
+          onPress: () => console.log("Add Icon Pressed"),
         },
       ],
     };
+
 
   return (
     <View style={{ flex: 1 }}>

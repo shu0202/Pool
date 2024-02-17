@@ -8,6 +8,7 @@ import LoginScreen from "../../screens/LoginScreen";
 import FriendlyPoolsScreen from "../../screens/FriendlyPoolsScreen"; // Placeholder, replace with actual import
 import InvestmentPoolsScreen from "../../screens/InvestmentPoolsScreen"; // Placeholder, replace with actual import
 import SettingsPage from "../../screens/SettingsPage";
+import { Ionicons } from "@expo/vector-icons";
 
 import { onAuthStateChanged } from "firebase/auth";
 import { FIREBASE_AUTH } from "../../../firebaseConfig";
@@ -19,14 +20,33 @@ function InsideNavigator() {
   return (
     <Tab.Navigator
       initialRouteName="Overview"
-      screenOptions={{ headerShown: false }}
+      screenOptions={({ route }) => ({
+        headerShown: false, // Correctly set headerShown as a boolean value
+        tabBarIcon: ({ focused, color, size }) => {
+          let iconName;
+
+          if (route.name === "Friendly Pools") {
+            iconName = focused ? "people" : "people-outline";
+          } else if (route.name === "Overview") {
+            iconName = focused ? "water" : "water-outline";
+          } else if (route.name === "Investment Pools") {
+            iconName = focused ? "wallet" : "wallet-outline";
+          }
+
+          // You can return any component that you like here!
+          return <Ionicons name={iconName} size={size} color={color} />;
+        },
+        tabBarActiveTintColor: "#022D3B",
+        tabBarInactiveTintColor: "gray",
+      })}
     >
-      <Tab.Screen name="FriendlyPools" component={FriendlyPoolsScreen} />
+      <Tab.Screen name="Friendly Pools" component={FriendlyPoolsScreen} />
       <Tab.Screen name="Overview" component={HomeScreen} />
-      <Tab.Screen name="InvestmentPools" component={InvestmentPoolsScreen} />
+      <Tab.Screen name="Investment Pools" component={InvestmentPoolsScreen} />
     </Tab.Navigator>
   );
 }
+
 function AppNavigator() {
   const [user, setUser] = useState(null);
 
@@ -56,7 +76,7 @@ function AppNavigator() {
             <Stack.Screen
               name="Settings"
               component={SettingsPage}
-              options={{ headerShown: true }}
+              options={{ headerShown: false }}
             />
           </>
         ) : (
@@ -69,6 +89,5 @@ function AppNavigator() {
     </NavigationContainer>
   );
 }
-
 
 export default AppNavigator;

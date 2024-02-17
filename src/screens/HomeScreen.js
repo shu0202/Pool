@@ -2,21 +2,25 @@ import React from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { FIREBASE_AUTH } from "../../firebaseConfig";
 import Header from '../components/AppHeader'; // Adjust the import path as necessary
+import Ionicons from "@expo/vector-icons/Ionicons";
 
 const auth = FIREBASE_AUTH;
 
 const HomeScreen = ({ navigation }) => {
-  const headerOptions = {
-    left: [
-      { text: "Settings", onPress: () => navigation.navigate("Settings") }, // Navigate to SettingsPage
-    ],
-    right: [
-      {
-        text: "Notifications",
-        onPress: () => console.log("Notifications Pressed"),
-      },
-    ],
-  };
+const headerOptions = {
+  left: [
+    {
+      icon: "settings",
+      onPress: () => navigation.navigate("Settings"),
+    },
+  ],
+  right: [
+    {
+      icon: "notifications",
+      onPress: () => console.log("Notifications Pressed"),
+    },
+  ],
+};
 
   return (
     <View style={{ flex: 1 }}>

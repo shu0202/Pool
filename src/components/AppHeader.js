@@ -4,36 +4,50 @@ import {
   TextInput,
   StyleSheet,
   TouchableOpacity,
-  Text,
   Image,
 } from "react-native";
+import TouchableScale from "react-native-touchable-scale";
+import Ionicons from "@expo/vector-icons/Ionicons"; // If using Expo
+// If not using Expo, import Ionicons from 'react-native-vector-icons/Ionicons';
 
-// Assuming `options` is an object with `left` and `right` properties, each being an array of buttons
 const Header = ({ options }) => {
   return (
     <View style={styles.headerContainer}>
-      <Image source={require("../../assets/app-icon.png")} style={styles.logo} />
+      <Image
+        source={require("../../assets/app-icon.png")}
+        style={styles.logo}
+      />
       <TextInput placeholder="Search for pools..." style={styles.searchInput} />
       <View style={styles.buttonContainer}>
         {options.left &&
           options.left.map((button, index) => (
-            <TouchableOpacity
+            <TouchableScale
               key={`left-${index}`}
               onPress={button.onPress}
-              style={styles.button}
+              style={styles.iconButton}
             >
-              <Text style={styles.buttonText}>{button.text}</Text>
-            </TouchableOpacity>
+              {/* Render icon if specified or text if not */}
+              {button.icon ? (
+                <Ionicons name={button.icon} size={26} color="white" />
+              ) : (
+                <Text style={styles.buttonText}>{button.text}</Text>
+              )}
+            </TouchableScale>
           ))}
         {options.right &&
           options.right.map((button, index) => (
-            <TouchableOpacity
+            <TouchableScale
               key={`right-${index}`}
               onPress={button.onPress}
-              style={styles.button}
+              style={styles.iconButton}
             >
-              <Text style={styles.buttonText}>{button.text}</Text>
-            </TouchableOpacity>
+              {/* Render icon if specified or text if not */}
+              {button.icon ? (
+                <Ionicons name={button.icon} size={26} color="white" />
+              ) : (
+                <Text style={styles.buttonText}>{button.text}</Text>
+              )}
+            </TouchableScale>
           ))}
       </View>
     </View>
@@ -46,30 +60,35 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 10,
-    height: 60, // Adjust based on your header height preference
-    backgroundColor: "#022D3B", // Or any other color
+    paddingTop: 15,
+    paddingBottom: 15, // Added to ensure vertical balance
+    height: 70, // Adjusted for potential increased padding
+    backgroundColor: "#022D3B",
   },
   logo: {
-    width: 50, // Adjust the size based on your logo
-    height: 50, // Adjust the size based on your logo
+    width: 40, // Slightly reduced to balance with icons
+    height: 40,
+    marginRight: 8,
     resizeMode: "contain",
   },
   searchInput: {
     flex: 1,
-    height: 40, // Adjust based on your preference
-    marginHorizontal: 10,
+    height: 38, // Slightly reduced to align better with logo and icons
+    marginHorizontal: 8, // Adjusted for spacing
     paddingHorizontal: 10,
-    backgroundColor: "#fff", // Background color for the search bar
-    borderRadius: 20, // Rounded corners for the search bar
+    backgroundColor: "#fff",
+    borderRadius: 20,
   },
   buttonContainer: {
     flexDirection: "row",
   },
-  button: {
-    marginLeft: 10,
+  iconButton: {
+    marginLeft: 4, // Adjusted for spacing
+    padding: 5, // Added padding for easier touch
   },
   buttonText: {
     fontSize: 16,
+    color: "white",
   },
 });
 
