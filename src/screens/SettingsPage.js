@@ -7,7 +7,6 @@ const SettingsPage = ({ navigation }) => {
     FIREBASE_AUTH.signOut()
       .then(() => {
         // Handle successful sign out (e.g., navigate to the login screen)
-        navigation.navigate("Login"); // Adjust this to your app's login screen route
       })
       .catch((error) => {
         // Handle sign out errors here
