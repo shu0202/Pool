@@ -1,4 +1,5 @@
 import { doc, setDoc } from "firebase/firestore"
+
 class InvestmentPool {
     constructor(poolId, creatorId, poolType, totalAmount = 0, interestRate, paybackTime, contributors = []) {
         this.poolId = poolId; // Unique identifier for the pool
