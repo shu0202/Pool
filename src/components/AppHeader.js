@@ -12,43 +12,48 @@ import Ionicons from "@expo/vector-icons/Ionicons"; // If using Expo
 
 const Header = ({ options }) => {
   return (
-    <View style={styles.headerContainer}>
-      <Image
-        source={require("../../assets/app-icon.png")}
-        style={styles.logo}
-      />
-      <TextInput placeholder="Search for pools..." style={styles.searchInput} />
-      <View style={styles.buttonContainer}>
-        {options.left &&
-          options.left.map((button, index) => (
-            <TouchableScale
-              key={`left-${index}`}
-              onPress={button.onPress}
-              style={styles.iconButton}
-            >
-              {/* Render icon if specified or text if not */}
-              {button.icon ? (
-                <Ionicons name={button.icon} size={26} color="white" />
-              ) : (
-                <Text style={styles.buttonText}>{button.text}</Text>
-              )}
-            </TouchableScale>
-          ))}
-        {options.right &&
-          options.right.map((button, index) => (
-            <TouchableScale
-              key={`right-${index}`}
-              onPress={button.onPress}
-              style={styles.iconButton}
-            >
-              {/* Render icon if specified or text if not */}
-              {button.icon ? (
-                <Ionicons name={button.icon} size={26} color="white" />
-              ) : (
-                <Text style={styles.buttonText}>{button.text}</Text>
-              )}
-            </TouchableScale>
-          ))}
+    <View style={styles.headerBG}>
+      <View style={styles.headerContainer}>
+        <Image
+          source={require("../../assets/app-icon.png")}
+          style={styles.logo}
+        />
+        <TextInput
+          placeholder="Search for pools..."
+          style={styles.searchInput}
+        />
+        <View style={styles.buttonContainer}>
+          {options.left &&
+            options.left.map((button, index) => (
+              <TouchableScale
+                key={`left-${index}`}
+                onPress={button.onPress}
+                style={styles.iconButton}
+              >
+                {/* Render icon if specified or text if not */}
+                {button.icon ? (
+                  <Ionicons name={button.icon} size={26} color="white" />
+                ) : (
+                  <Text style={styles.buttonText}>{button.text}</Text>
+                )}
+              </TouchableScale>
+            ))}
+          {options.right &&
+            options.right.map((button, index) => (
+              <TouchableScale
+                key={`right-${index}`}
+                onPress={button.onPress}
+                style={styles.iconButton}
+              >
+                {/* Render icon if specified or text if not */}
+                {button.icon ? (
+                  <Ionicons name={button.icon} size={26} color="white" />
+                ) : (
+                  <Text style={styles.buttonText}>{button.text}</Text>
+                )}
+              </TouchableScale>
+            ))}
+        </View>
       </View>
     </View>
   );
@@ -56,6 +61,7 @@ const Header = ({ options }) => {
 
 const styles = StyleSheet.create({
   headerContainer: {
+    width: "92%",
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
@@ -63,6 +69,9 @@ const styles = StyleSheet.create({
     paddingTop: 15,
     paddingBottom: 15, // Added to ensure vertical balance
     height: 70, // Adjusted for potential increased padding
+    alignSelf: 'center'
+  },
+  headerBG: {
     backgroundColor: "#022D3B",
   },
   logo: {
