@@ -1,5 +1,5 @@
 class InvestmentPool {
-    constructor(poolId, creatorId, poolType, totalAmount = 0, interestRate, paybackTime, contributors = []) {
+    constructor(poolId, creatorId, poolType, totalAmount = 0, paybackTime, contributors = []) {
         this.poolId = poolId; // Unique identifier for the pool
         this.creatorId = creatorId; // UserID of the pool creator
         this.totalAmount = totalAmount; // Total amount currently in the pool
@@ -16,6 +16,9 @@ class InvestmentPool {
             this.contributors.push({ userId, amountContributed: amount });
         }
         this.totalAmount += amount;
+    }
+    setPaybackTime(newPaybackTime) {
+        this.paybackTime = newPaybackTime;
     }
     // Method to calculate and distribute returns to contributors (for Interest Pools)
     distributeReturns() {
