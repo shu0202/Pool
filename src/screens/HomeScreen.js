@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, StyleSheet, Dimensions } from "react-native";
+import { ScrollView, View, Text, StyleSheet, Dimensions } from "react-native";
 import { LineChart } from "react-native-chart-kit";
 import Header from "../components/AppHeader";
 import { fetchInvestmentData } from "../utilities/calcTotalInvest"; // Adjust the import path
