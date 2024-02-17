@@ -6,7 +6,6 @@ import { fetchInvestmentData } from "../utilities/calcTotalInvest"; // Adjust th
 
 const HomeScreen = ({ navigation }) => {
   const [totalInvested, setTotalInvested] = useState(0);
-  const [error, setError] = useState(""); // State to store error message
 
   const headerOptions = {
     left: [
@@ -23,44 +22,6 @@ const HomeScreen = ({ navigation }) => {
     ],
   };
 
-  const chartData = {
-    labels: [""], // Single empty label
-    datasets: [
-      {
-        data: [5, 10, 5, 20, 50, 0, 8], // dummy data points
-      },
-    ],
-  };
-
-  const chartConfig = {
-    backgroundColor: "#fff",
-    backgroundGradientFrom: "#fff",
-    backgroundGradientTo: "#fff",
-    backgroundGradientFromOpacity: 0,
-    backgroundGradientToOpacity: 0,
-    decimalPlaces: 2,
-    color: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
-    fillShadowGradientOpacity: 0, // Removes the fill underneath the line
-    fillShadowGradientToOpacity: 0, // Removes the fill underneath the line
-    propsForDots: {
-      r: "0", // Hide dots by setting radius to 0
-    },
-  };
-
-  useEffect(() => {
-    const poolId = "yourPoolIdHere"; // Replace with your actual pool ID
-    const loadData = async () => {
-      try {
-        const { totalInvested } = await fetchInvestmentData(poolId);
-        setTotalInvested(totalInvested);
-      } catch (err) {
-        console.error("Failed to fetch investment data:", err);
-        setError("Failed to load data"); // Set error message
-      }
-    };
-
-    loadData();
-  }, []);
 
   return (
     <View style={styles.pageContainer}>
@@ -77,9 +38,6 @@ const HomeScreen = ({ navigation }) => {
         </View>
         <View style={styles.discoverPools}>
           <Text style={styles.sectionTitle}>Discover Pools</Text>
-        </View>
-        <View style={styles.communityFeatures}>
-          <Text style={styles.sectionTitle}>Community Features</Text>
         </View>
       </ScrollView>
     </View>
