@@ -1,10 +1,11 @@
 class InvestmentPool {
-    constructor(poolId, creatorId, poolType, totalAmount = 0, paybackTime, contributors = []) {
+    constructor(poolId, creatorId, poolType, totalAmount = 0, paybackTime, contributors = [], loanRequests = []) {
         this.poolId = poolId; // Unique identifier for the pool
         this.creatorId = creatorId; // UserID of the pool creator
         this.totalAmount = totalAmount; // Total amount currently in the pool
         this.paybackTime = paybackTime; // Expected payback time
         this.contributors = contributors; // Array of objects { userId, amountContributed }
+        this.loanRequests = loanRequests;
     }
     // Method to add a contributor to the pool
     addContributor(userId, amount) {
@@ -28,6 +29,27 @@ class InvestmentPool {
             // updateUserWallet(contributor.userId, returnAmount);
         });
     }
+    requestLoan(userId, amountRequested) {
+        const request = {
+            request: this.generateRequestId(),
+            userId: userId,
+            amountRequested: amountRequested,
+            status: "Pending", // Initial status of the loan request
+            approvals: {}, // Object to track approvals from contributors
+        };
+        // Initialize all approvals to false
+        this.contributors.forEach(contributor => {
+            if (contributor.userId !== userId) {
+                request.approvals[contributor.userId] = false;
+            }
+        });
+        this.loanRequests.push(request);
+        return request;
+    }
+
+    // Method for a contributor to approve a loan request
+
+
     // Convert pool object to a database-friendly format
     toFirestore() {
         return {
@@ -37,5 +59,6 @@ class InvestmentPool {
             paybackTime: this.paybackTime,
             contributors: this.contributors
         };
+
     }
 }
