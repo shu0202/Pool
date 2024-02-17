@@ -48,7 +48,35 @@ class InvestmentPool {
     }
 
     // Method for a contributor to approve a loan request
+    approveLoanRequest(requestId, contributorUserId) {
+        const request = this.loanRequests.find(req => req.requestId === requestId);
+        if (!request) {
+            throw new Error('Loan request not found.');
+        }
 
+        if (request.status !== 'Pending') {
+            throw new Error('This request has already been processed.');
+        }
+
+        // Record approval
+        if (request.approvals.hasOwnProperty(contributorUserId)) {
+            request.approvals[contributorUserId] = true;
+        }
+
+        // Check if the request meets the approval criteria
+        this.checkApprovalCriteria(request);
+    }
+    // Method to check if a loan request meets the approval criteria
+    checkApprovalCriteria(request) {
+        const totalContributors = Object.keys(request.approvals).length;
+        const approvalsReceived = Object.values(request.approvals).filter(approval => approval).length;
+
+        // Example criterion: More than half of the contributors must approve
+        if (approvalsReceived > totalContributors / 2) {
+            request.status = 'Approved';
+            // Logic for transferring the loan amount to the requester could go here
+        }
+    }
 
     // Convert pool object to a database-friendly format
     toFirestore() {
