@@ -1,5 +1,5 @@
 import { doc, setDoc, getDoc } from "firebase/firestore";
-import { FIREBASE_DB } from "./path_to_your_firebase_config"; // Adjust the path to where you've defined FIREBASE_DB
+import { FIREBASE_DB } from "../../firebaseConfig";
 
 class Transaction {
     constructor(transactionId, userId, type, amount, poolId = null, timestamp = new Date()) {
@@ -31,7 +31,6 @@ class Transaction {
             console.log("Transaction successfully saved to Firestore!");
         } catch (error) {
             console.error("Error saving Transaction to Firestore: ", error);
-            // Handle the error appropriately
         }
     }
 
@@ -56,8 +55,13 @@ class Transaction {
             }
         } catch (error) {
             console.error("Error fetching Transaction from Firestore: ", error);
-            // Handle the error appropriately
             return null;
         }
+    }
+    // Static method to fetch ALL transaction by ID from Firestore
+    static async fetchTransactionsByUser(userId) {
+        const queryRef = query(collection(FIREBASE_DB, 'transactions'), where("userId", "==", userId));
+        const querySnapshot = await getDocs(queryRef);
+        return querySnapshot.docs.map(doc => new Transaction(doc.data().transactionId, doc.data().userId, doc.data().type, doc.data().amount, doc.data().poolId, doc.data().timestamp));
     }
 }
