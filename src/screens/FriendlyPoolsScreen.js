@@ -1,16 +1,39 @@
-import React from "react";
-import { ScrollView, View, Text, StyleSheet } from "react-native";
+import React, { useState } from "react";
+import { ScrollView, View, Text, StyleSheet, Modal, TextInput, TouchableOpacity, TouchableWithoutFeedback, Keyboard  } from "react-native";
 import Header from "../components/AppHeader"; // Adjust the import path as necessary
 
 const FriendlyPools = () => {
+  const [modalVisible, setModalVisible] = useState(false);
+  const [name, setName] = useState('');
+  const [amount, setAmount] = useState('');
+  const [paytime, setPaytime] = useState('');
+  const [interest, setInterest] = useState('');
+
   const headerOptions = {
     right: [
       {
         icon: "add-circle",
-        onPress: () => console.log("Add Icon Pressed"),
+        onPress: () => setModalVisible(true),
       },
     ],
   };
+
+  const handleSave = () => {
+    // Perform save logic here
+    console.log("Save Button Pressed");
+    // Clear the input fields and close the modal
+    setName('');
+    setAmount('');
+    setPaytime('');
+    setInterest('');
+    setModalVisible(false);
+  };
+
+  const dismissKeyboard = () => {
+    Keyboard.dismiss();
+  };
+
+
 
   return (
     <View style={styles.pageContainer}>
@@ -29,6 +52,43 @@ const FriendlyPools = () => {
           <Text style={styles.sectionTitle}>Sub-Pools</Text>
         </View>
       </ScrollView>
+      <Modal visible={modalVisible} animationType="slide">
+          <TouchableWithoutFeedback onPress={dismissKeyboard}>
+            <View style={styles.modalContainer}>
+              <Text style={styles.modalTitle}>New Pool</Text>
+              <View style={styles.inputContainer}>
+                <Text style={styles.label}>Name:</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Name"
+                  value={name}
+                  onChangeText={text => setName(text)}
+                />
+              </View>
+              <View style={styles.inputContainer}>
+                <Text style={styles.label}>Amount:</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Amount"
+                  value={amount}
+                  onChangeText={text => setAmount(text)}
+                />
+              </View>
+              <View style={styles.inputContainer}>
+                <Text style={styles.label}>Paytime:</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Paytime"
+                  value={paytime}
+                  onChangeText={text => setPaytime(text)}
+                />
+              </View>
+              <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
+                <Text style={styles.saveButtonText}>Save</Text>
+              </TouchableOpacity>
+            </View>
+          </TouchableWithoutFeedback>
+        </Modal>
     </View>
   );
 };
@@ -71,6 +131,56 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     marginBottom: 20,
   },
+  container: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#022D3B", // Light grey background
+  },
+  text: {
+    fontSize: 20,
+    fontWeight: "bold",
+  },
+  modalContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "white",
+    padding: 16,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    marginBottom: 16,
+  },
+  input: {
+    width: "100%",
+    height: 40,
+    borderColor: "gray",
+    borderWidth: 1,
+    marginBottom: 12,
+    paddingHorizontal: 8,
+  },
+  saveButton: {
+    backgroundColor: "#022D3B",
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 5,
+    marginTop: 16,
+  },
+  saveButtonText: {
+    color: "white",
+    fontSize: 16,
+    fontWeight: "bold",
+    textAlign: "center",
+  },
+  inputContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 15,
+    width: "70%",
+  },
+
   // Additional styles for the rest of your app...
 });
 
