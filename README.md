@@ -4,25 +4,23 @@
 
 ## Core Features
 
-- **Investment Pool**: 
-- **Friend Pools**: 
-- **Overview**: 
-- **Account System**: 
-- **SignUp**: 
-- **Login**: 
+- **Investment Pool** 
+- **Friendly Pools**
+- **Account System** 
+- **SignUp** 
+- **Login**
 
 ## Technologies Used
 - **Programming Language:** JavaScript(ES6+)
 - **Frameworks:** React, React-Native, Expo
 - **Additional Tools:** Node.js, Git, firebase
-
+  
 ## Demo Video
-Explore the features of "Bloom" through our demonstration video. Click on the image below to view the video on YouTube:
+Explore the features of "Pool" through our demonstration video. Click on the image below to view the video on YouTube:
 
-[![Watch the Pool Demo](http://img.youtube.com/vi/v2pALOEpWOQ/0.jpg)](https://www.youtube.com/watch?v=VJa4_xRdSYE "Watch the Pool Demo")
+[![Watch the Pool Demo](http://img.youtube.com/vi/VJa4_xRdSYE/0.jpg)](https://www.youtube.com/watch?v=VJa4_xRdSYE&feature=youtu.be "Watch the Pool Demo")
 
-If that does not work, visit the link here: [Pool Demonstration Video on YouTube](https://www.youtube.com/watch?v=VJa4_xRdSYE).
-
+If that does not work, visit the link here: [Pool Demonstration Video on YouTube](https://www.youtube.com/watch?v=VJa4_xRdSYE&feature=youtu.be).
 
 #### First-Time Installations:
 1. Install [Node.js](https://nodejs.org/en/download)
