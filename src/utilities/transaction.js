@@ -1,14 +1,17 @@
+import { doc, setDoc, getDoc } from "firebase/firestore";
+import { FIREBASE_DB } from "./path_to_your_firebase_config"; // Adjust the path to where you've defined FIREBASE_DB
+
 class Transaction {
     constructor(transactionId, userId, type, amount, poolId = null, timestamp = new Date()) {
-        this.transactionId = transactionId; // Unique identifier for the transaction
-        this.userId = userId; // UserID of the user involved in the transaction
-        this.type = type; // Type of transaction (e.g., 'investment', 'loan', 'repayment', 'wallet-update')
-        this.amount = amount; // Amount of money involved in the transaction
-        this.poolId = poolId; // Optional: ID of the pool involved in the transaction (for investments/loans)
-        this.timestamp = timestamp; // Timestamp of the transaction
+        this.transactionId = transactionId;
+        this.userId = userId;
+        this.type = type;
+        this.amount = amount;
+        this.poolId = poolId;
+        this.timestamp = timestamp;
     }
 
-    // Convert transaction object to a database-friendly format
+    // Convert transaction object to a Firestore-friendly format
     toFirestore() {
         return {
             transactionId: this.transactionId,
@@ -20,24 +23,41 @@ class Transaction {
         };
     }
 
-    // method to save the transaction to the database
+    // Save the transaction to Firestore
     async save() {
-        const db = admin.firestore();
-        const transactionRef = db.collection('transactions').doc(this.transactionId);
-        await transactionRef.set(this.toFirestore());
+        try {
+            const transactionRef = doc(FIREBASE_DB, 'transactions', this.transactionId);
+            await setDoc(transactionRef, this.toFirestore());
+            console.log("Transaction successfully saved to Firestore!");
+        } catch (error) {
+            console.error("Error saving Transaction to Firestore: ", error);
+            // Handle the error appropriately
+        }
     }
 
-    // Static method to fetch a transaction by ID
+    // Static method to fetch a transaction by ID from Firestore
     static async fetchById(transactionId) {
-        const db = admin.firestore();
-        const transactionRef = db.collection('transactions').doc(transactionId);
-        const doc = await transactionRef.get();
-        if (!doc.exists) {
-            console.log('No such transaction!');
+        try {
+            const transactionRef = doc(FIREBASE_DB, 'transactions', transactionId);
+            const docSnap = await getDoc(transactionRef);
+            if (!docSnap.exists()) {
+                console.log('No such transaction!');
+                return null;
+            } else {
+                const transactionData = docSnap.data();
+                return new Transaction(
+                    transactionData.transactionId,
+                    transactionData.userId,
+                    transactionData.type,
+                    transactionData.amount,
+                    transactionData.poolId,
+                    transactionData.timestamp
+                );
+            }
+        } catch (error) {
+            console.error("Error fetching Transaction from Firestore: ", error);
+            // Handle the error appropriately
             return null;
-        } else {
-            const transactionData = doc.data();
-            return new Transaction(transactionData.transactionId, transactionData.userId, transactionData.type, transactionData.amount, transactionData.poolId, transactionData.timestamp);
         }
     }
 }
