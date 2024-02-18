@@ -1,6 +1,8 @@
 import React, { useState } from "react";
 import { ScrollView, View, Text, StyleSheet, Modal, TextInput, TouchableOpacity, TouchableWithoutFeedback, Keyboard  } from "react-native";
 import Header from "../components/AppHeader"; // Adjust the import path as necessary
+import { addDoc, collection } from "firebase/firestore";
+import { FIREBASE_DB } from "../../firebaseConfig";
 
 const FriendlyPools = () => {
   const [modalVisible, setModalVisible] = useState(false);
@@ -18,15 +20,27 @@ const FriendlyPools = () => {
     ],
   };
 
-  const handleSave = () => {
-    // Perform save logic here
-    console.log("Save Button Pressed");
-    // Clear the input fields and close the modal
-    setName('');
-    setAmount('');
-    setPaytime('');
-    setInterest('');
-    setModalVisible(false);
+  const handleSave = async () => {
+    try {
+      // Create a new document object
+      const newPool = {
+        name: name,
+        amount: amount,
+        paybacktime: paytime,
+      };
+
+      // Add the document to the "FriendlyPool" collection
+      const docRef = await addDoc(collection(FIREBASE_DB, "FriendlyPools"), newPool);
+      console.log("Document written with ID: ", docRef.id);
+
+      // Clear the input fields and close the modal
+      setName('');
+      setAmount('');
+      setPaytime('');
+      setModalVisible(false);
+    } catch (error) {
+      console.error("Error adding document: ", error);
+    }
   };
 
   const dismissKeyboard = () => {
