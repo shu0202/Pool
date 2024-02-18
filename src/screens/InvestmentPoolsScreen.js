@@ -292,7 +292,7 @@ useEffect(() => {
     <Text style={styles.mainHeader}> Management:</Text>
     <View style={styles.headerUnderline} />
       <View style={styles.poolsOwned}>
-          <Text style={styles.sectionTitle}>Pools Owned</Text>
+          <Text style={styles.sectionTitle}>Popular Pools</Text>
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={true}
