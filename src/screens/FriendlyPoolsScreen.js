@@ -1,15 +1,29 @@
 import React, { useState, useEffect } from "react";
-import { ScrollView, View, Text, StyleSheet, Modal, TextInput, TouchableOpacity, TouchableWithoutFeedback, Keyboard, Dimensions  } from "react-native";
-import Header from "../components/AppHeader"; // Adjust the import path as necessary
-import { addDoc, getDocs, collection, doc, getDoc } from "firebase/firestore";
+import {
+  ScrollView,
+  View,
+  Text,
+  StyleSheet,
+  Modal,
+  TextInput,
+  TouchableOpacity,
+  TouchableWithoutFeedback,
+  Keyboard,
+  Dimensions,
+} from "react-native";
+import Header from "../components/AppHeader";
+import { addDoc, getDocs, collection, doc, getDoc, arrayUnion, updateDoc } from "firebase/firestore";
 import { FIREBASE_DB, FIREBASE_AUTH } from "../../firebaseConfig";
 
 const FriendlyPools = () => {
+  const [myContributions, setMyContributions] = useState([]);
   const [modalVisible, setModalVisible] = useState(false);
-  const [name, setName] = useState('');
-  const [amount, setAmount] = useState('');
-  const [paytime, setPaytime] = useState('');
-  const [interest, setInterest] = useState('');
+  const [poolModalVisible, setPoolModalVisible] = useState(false);
+  const [selectedPool, setSelectedPool] = useState({});
+  const [name, setName] = useState("");
+  const [amount, setAmount] = useState("");
+  const [paytime, setPaytime] = useState("");
+  const [interest, setInterest] = useState("");
   const [pools, setPools] = useState([]);
 
   const headerOptions = {
@@ -21,15 +35,107 @@ const FriendlyPools = () => {
     ],
   };
 
+  const joinPool = async (poolId, contributionAmount) => {
+    const user = FIREBASE_AUTH.currentUser;
+    if (!user) {
+      console.error("User must be logged in to join a pool");
+      return;
+    }
+
+    // Construct contributor object
+    const newContributor = {
+      userId: user.uid,
+      amount: 0,
+    };
+
+    // Get a reference to the pool
+    const poolRef = doc(FIREBASE_DB, "FriendlyPools", poolId);
+
+    try {
+      // Atomically add a new contributor to the "contributors" array field
+      await updateDoc(poolRef, {
+        contributors: arrayUnion(newContributor),
+      });
+      console.log("User successfully joined pool");
+
+      // Close the modal
+      setPoolModalVisible(false);
+
+      // Fetch the updated pool data and update the state
+      const updatedPool = await fetchSinglePool(poolId);
+      setPools((prevPools) =>
+        prevPools.map((pool) => (pool.id === poolId ? updatedPool : pool))
+      );
+
+      // Optionally, if you want to update the 'myContributions' state as well:
+      setMyContributions((prevContributions) => {
+        const existing = prevContributions.find((p) => p.id === poolId);
+        if (existing) {
+          return prevContributions.map((p) =>
+            p.id === poolId ? updatedPool : p
+          );
+        } else {
+          return [...prevContributions, updatedPool];
+        }
+      });
+    } catch (error) {
+      console.error("Error joining pool: ", error);
+    }
+  };
+
+
+  const fetchPools = async () => {
+    try {
+      const querySnapshot = await getDocs(
+        collection(FIREBASE_DB, "FriendlyPools")
+      );
+      const poolsData = querySnapshot.docs.map((docSnapshot) => ({
+        id: docSnapshot.id,
+        ...docSnapshot.data(),
+      }));
+      setPools(poolsData);
+    } catch (error) {
+      console.error("Error fetching pools: ", error);
+    }
+  };
+
+  const fetchSinglePool = async (poolId) => {
+    try {
+      const poolRef = doc(FIREBASE_DB, "FriendlyPools", poolId);
+      const poolDoc = await getDoc(poolRef);
+      if (poolDoc.exists()) {
+        return { id: poolDoc.id, ...poolDoc.data() };
+      } else {
+        throw new Error("Pool does not exist.");
+      }
+    } catch (error) {
+      console.error("Error fetching single pool: ", error);
+      throw error;
+    }
+  };
+
+
+  useEffect(() => {
+    fetchPools();
+  }, []);
+
+
   const handleSave = async () => {
     const user = FIREBASE_AUTH.currentUser;
     if (user) {
       try {
+        // Set the creator's contribution. Here, the key is the user's UID and the value is the amount.
+        const contributions = {
+          [user.uid]: amount, // Assuming 'amount' is the initial contribution by the creator
+        };
+
         const newPool = {
           name,
           amount,
           paybacktime: paytime,
-          creatorId: user.uid, // Include the ID of the current user
+          creatorId: user.uid,
+          createdAt: new Date(),
+          contributions, // Using an object for contributions
         };
 
         const docRef = await addDoc(
@@ -38,6 +144,7 @@ const FriendlyPools = () => {
         );
         console.log("Document written with ID: ", docRef.id);
 
+        // Reset form and update UI as necessary
         setName("");
         setAmount("");
         setPaytime("");
@@ -48,7 +155,22 @@ const FriendlyPools = () => {
     } else {
       console.error("No user logged in");
     }
-};
+  };
+
+  const updateContribution = async (poolId, userId, newContributionAmount) => {
+    const poolRef = doc(FIREBASE_DB, "FriendlyPools", poolId);
+
+    try {
+      // Prepare the update object. This uses the Firestore field value syntax to update nested fields.
+      const updateObject = {};
+      updateObject[`contributions.${userId}`] = newContributionAmount;
+
+      await updateDoc(poolRef, updateObject);
+      console.log("Contribution updated successfully");
+    } catch (error) {
+      console.error("Error updating contribution: ", error);
+    }
+  };
 
 
   const dismissKeyboard = () => {
@@ -58,44 +180,29 @@ const FriendlyPools = () => {
   useEffect(() => {
     const fetchPools = async () => {
       try {
-        // Get the snapshot of the FriendlyPools collection
         const querySnapshot = await getDocs(
           collection(FIREBASE_DB, "FriendlyPools")
         );
-        // Process each document in the snapshot
         const poolsData = await Promise.all(
           querySnapshot.docs.map(async (docSnapshot) => {
             const pool = docSnapshot.data();
-            // Check if creatorId exists and is not undefined
+            pool.id = docSnapshot.id; // Attach the ID for key prop usage
             if (pool.creatorId) {
-              // Create a reference to the user document
               const creatorRef = doc(FIREBASE_DB, "Users", pool.creatorId);
-              // Fetch the document
               const creatorDoc = await getDoc(creatorRef);
-              // Check if the document exists and has an email field
-              if (creatorDoc.exists() && creatorDoc.data().email) {
-                return {
-                  ...pool,
-                  id: docSnapshot.id,
-                  creatorName: creatorDoc.data().email,
-                };
-              } else {
-                return {
-                  ...pool,
-                  id: docSnapshot.id,
-                  creatorName: "Unknown",
-                };
-              }
+              pool.creatorName = creatorDoc.exists()
+                ? creatorDoc.data().email
+                : "Unknown";
             } else {
-              return {
-                ...pool,
-                id: docSnapshot.id,
-                creatorName: "Unknown",
-              };
+              pool.creatorName = "Unknown";
             }
+            return pool;
           })
         );
-        // Update the state with the fetched data
+
+        // Sort pools by createdAt timestamp, newest first
+        poolsData.sort((a, b) => b.createdAt - a.createdAt);
+
         setPools(poolsData);
       } catch (error) {
         console.error("Error fetching pools: ", error);
@@ -105,38 +212,110 @@ const FriendlyPools = () => {
     fetchPools();
   }, []);
 
+   useEffect(() => {
+     const fetchMyContributions = async () => {
+       const userId = FIREBASE_AUTH.currentUser?.uid;
+       if (!userId) {
+         console.error("User must be logged in to fetch contributions");
+         return;
+       }
+
+       const querySnapshot = await getDocs(
+         collection(FIREBASE_DB, "FriendlyPools")
+       );
+       const allPools = querySnapshot.docs.map((docSnapshot) => ({
+         id: docSnapshot.id,
+         ...docSnapshot.data(),
+       }));
+
+       // Filter pools to find ones where the current user is a contributor
+       const myContributions = allPools.filter(
+         (pool) =>
+           pool.contributors &&
+           pool.contributors.some(
+             (contributor) => contributor.userId === userId
+           )
+       );
+
+       // Assuming you have a state to store user's contributions
+       setMyContributions(myContributions);
+     };
+
+     fetchMyContributions();
+   }, []);
+
+   // Assuming you've authenticated and have the current user's ID
+   const user = FIREBASE_AUTH.currentUser;
+   const userId = user?.uid;
 
 
+  const calculateTotalContributions = (contributions) => {
+    return Object.values(contributions).reduce(
+      (total, amount) => total + amount,
+      0
+    );
+  };
 
+
+  // Open pool details modal
+  const openPoolDetails = (pool) => {
+    setSelectedPool(pool);
+    setPoolModalVisible(true);
+  };
 
   return (
     <View style={styles.pageContainer}>
       <Header options={headerOptions} />
       <ScrollView contentContainerStyle={styles.contentContainer}>
         <View style={styles.activePools}>
-          <Text style={styles.sectionTitle}>Active Pools</Text>
+          <Text style={styles.sectionTitle}>Open Friendly Pools</Text>
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={true}
             contentContainerStyle={styles.horizontalScroll}
           >
             {pools.map((pool) => (
-              <View key={pool.id} style={styles.pool}>
+              <TouchableOpacity
+                key={pool.id}
+                style={styles.pool}
+                onPress={() => openPoolDetails(pool)}
+              >
                 <Text style={styles.poolText}>Name: {pool.name}</Text>
-                <Text style={styles.poolText}>Amount: {pool.amount}</Text>
+                <Text style={styles.poolText}>Pool Worth: £{pool.amount}</Text>
                 <Text style={styles.poolText}>
                   Payback Time: {pool.paybacktime} days
                 </Text>
                 <Text style={styles.poolText}>
                   Pool Creator: {pool.creatorName}
                 </Text>
-              </View>
+              </TouchableOpacity>
             ))}
           </ScrollView>
         </View>
 
-        <View style={styles.myContributions}>
+        <View style={styles.myContributionsContainer}>
           <Text style={styles.sectionTitle}>My Contributions</Text>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={true}
+            contentContainerStyle={styles.horizontalScroll}
+          >
+            {myContributions.map((pool) => {
+              const userContribution = pool.contributors.find(
+                (contributor) => contributor.userId === userId
+              );
+              return (
+                <View key={pool.id} style={styles.contributionItem}>
+                  <Text style={styles.contributionText}>
+                    Pool Name: {pool.name}
+                  </Text>
+                  <Text style={styles.contributionText}>
+                    Amount Contributed: £{userContribution?.amount}
+                  </Text>
+                </View>
+              );
+            })}
+          </ScrollView>
         </View>
         <View style={styles.pendingRequests}>
           <Text style={styles.sectionTitle}>Pending Requests</Text>
@@ -145,42 +324,86 @@ const FriendlyPools = () => {
           <Text style={styles.sectionTitle}>Sub-Pools</Text>
         </View>
       </ScrollView>
-      <Modal visible={modalVisible} animationType="slide">
+
+      <Modal visible={modalVisible} animationType="slide" transparent={true}>
         <TouchableWithoutFeedback onPress={dismissKeyboard}>
-          <View style={styles.modalContainer}>
-            <Text style={styles.modalTitle}>New Pool</Text>
-            <View style={styles.inputContainer}>
-              <Text style={styles.label}>Name:</Text>
+          <View style={styles.centeredView}>
+            <View style={styles.modalContainer}>
+              {/* Modal Title */}
+              <Text style={styles.modalTitle}>Create New Pool</Text>
+
+              {/* Name Input */}
               <TextInput
-                style={styles.input}
-                placeholder="Name"
+                style={styles.inputContainer}
+                placeholder="Pool Name"
+                placeholderTextColor="#888" // Added for better visibility
                 value={name}
-                onChangeText={(text) => setName(text)}
+                onChangeText={setName}
               />
-            </View>
-            <View style={styles.inputContainer}>
-              <Text style={styles.label}>Amount:</Text>
+
+              {/* Paytime Input */}
               <TextInput
-                style={styles.input}
-                placeholder="Amount"
-                value={amount}
-                onChangeText={(text) => setAmount(text)}
-              />
-            </View>
-            <View style={styles.inputContainer}>
-              <Text style={styles.label}>Paytime:</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Paytime"
+                style={styles.inputContainer}
+                placeholder="Re-Pay Time (days)"
+                placeholderTextColor="#888" // Added for better visibility
+                keyboardType="numeric"
                 value={paytime}
-                onChangeText={(text) => setPaytime(text)}
+                onChangeText={setPaytime}
               />
+
+              {/* Save Button */}
+              <TouchableOpacity
+                style={styles.actionButton}
+                onPress={handleSave}
+              >
+                <Text style={styles.actionButtonText}>Save Pool</Text>
+              </TouchableOpacity>
+
+              {/* Close Modal Button */}
+              <TouchableOpacity
+                style={styles.closeButton}
+                onPress={() => setModalVisible(false)}
+              >
+                <Text style={styles.closeButtonText}>Close</Text>
+              </TouchableOpacity>
             </View>
-            <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
-              <Text style={styles.saveButtonText}>Save</Text>
-            </TouchableOpacity>
           </View>
         </TouchableWithoutFeedback>
+      </Modal>
+
+      <Modal
+        visible={poolModalVisible}
+        animationType="slide"
+        onRequestClose={() => setPoolModalVisible(false)}
+        transparent={true} // Ensures the modal's background is transparent
+      >
+        <View style={styles.centeredView}>
+          <View style={styles.modalContainer}>
+            <Text style={styles.modalTitle}>{selectedPool.name}</Text>
+            {/* Pool details and actions */}
+            <Text>Total In Pool: {selectedPool.amount}</Text>
+            <Text>Total Invested: </Text>
+            <Text>Payback Time: {selectedPool.paybacktime} days</Text>
+            <Text>Pool Creator: {selectedPool.creatorName}</Text>
+            <TouchableOpacity
+              style={styles.actionButton}
+              onPress={() =>
+                joinPool(
+                  selectedPool.id /* Specify the contribution amount here */
+                )
+              }
+            >
+              <Text style={styles.actionButtonText}>JOIN OPEN FRIENDLY</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() => setPoolModalVisible(false)}
+              style={styles.closeButton}
+            >
+              <Text style={styles.closeButtonText}>Close</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
       </Modal>
     </View>
   );
@@ -192,6 +415,12 @@ const styles = StyleSheet.create({
   pageContainer: {
     flex: 1,
     backgroundColor: "#022D3B",
+  },
+  centeredView: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    marginTop: 22,
   },
   contentContainer: {
     padding: 20,
@@ -207,9 +436,8 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(255, 255, 255, 0.5)",
     padding: 10,
     borderRadius: 10,
-    marginHorizontal: 5, // Add some spacing between items
-    width: 150, // Set a fixed width for each pool item
-    // Add any additional styles you need
+    marginHorizontal: 5,
+    width: 150,
   },
   poolText: {
     color: "#022D3B",
@@ -243,58 +471,102 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     width: "90%",
   },
-  
-  container: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#022D3B", // Light grey background
-  },
-  text: {
-    fontSize: 20,
-    fontWeight: "bold",
-  },
   modalContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
+    margin: 20,
     backgroundColor: "white",
-    padding: 16,
+    borderRadius: 20,
+    padding: 35,
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+    width: windowWidth * 0.8, // 80% of window width
+    alignSelf: "center", // This ensures the modal is centered in its parent
   },
   modalTitle: {
-    fontSize: 20,
+    fontSize: 24,
     fontWeight: "bold",
-    marginBottom: 16,
+    color: "#022D3B",
+    marginBottom: 15,
+  },
+  inputContainer: {
+    width: "80%",
+    padding: 10,
+    marginVertical: 10,
+    backgroundColor: "#F0F0F0", // Light grey background for input
+    borderRadius: 10,
+    fontSize: 16,
   },
   input: {
-    width: "100%",
-    height: 40,
-    borderColor: "gray",
-    borderWidth: 1,
-    marginBottom: 12,
-    paddingHorizontal: 8,
+    color: "black",
   },
-  saveButton: {
+  actionButton: {
     backgroundColor: "#022D3B",
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 5,
-    marginTop: 16,
+    padding: 10,
+    borderRadius: 10,
+    marginVertical: 5,
+    width: "80%",
+    alignItems: "center",
   },
-  saveButtonText: {
+  actionButtonText: {
     color: "white",
     fontSize: 16,
     fontWeight: "bold",
-    textAlign: "center",
   },
-  inputContainer: {
-    flexDirection: "row",
+  closeButton: {
+    marginTop: 15,
+    backgroundColor: "grey",
+    padding: 10,
+    borderRadius: 10,
+    width: "80%",
     alignItems: "center",
-    marginBottom: 15,
-    width: "70%",
   },
-
-  // Additional styles for the rest of your app...
+  myContributionsContainer: {
+    // Add styling similar to 'activePools' to make it visually consistent
+    backgroundColor: "rgba(255, 255, 255, 0.7)",
+    paddingVertical: 20,
+    paddingHorizontal: 5,
+    borderRadius: 20,
+    marginBottom: 20,
+    width: "90%",
+    alignSelf: "center",
+  },
+  horizontalScroll: {
+    // This style will be used to layout the children of the ScrollView
+    alignItems: "center",
+    paddingStart: 5,
+    paddingEnd: 5,
+  },
+  contributionItem: {
+    // Each contribution item will be styled to appear as cards or tiles
+    backgroundColor: "rgba(255, 255, 255, 0.9)",
+    padding: 10,
+    borderRadius: 10,
+    marginHorizontal: 5,
+    width: 180, // You can adjust the width as needed
+    // Add elevation or shadow for better appearance
+    elevation: 5,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+  },
+  contributionText: {
+    // Style for the text inside each contribution item
+    color: "#022D3B",
+    fontSize: 16,
+    marginBottom: 5, // Add some margin between text elements
+  },
+  closeButtonText: {
+    color: "white",
+    fontSize: 16,
+    fontWeight: "bold",
+  },
 });
 
 export default FriendlyPools;
