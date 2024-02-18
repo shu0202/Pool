@@ -4,7 +4,6 @@ import Header from "../components/AppHeader"; // Adjust the import path as neces
 import { addDoc, getDocs, collection, doc, getDoc, arrayUnion, updateDoc } from "firebase/firestore";
 import { FIREBASE_DB, FIREBASE_AUTH } from "../../firebaseConfig";
 import InvestmentPool from "../utilities/investmentPool";
-import FriendlyPool from "../utilities/friendsPool";
 
 const InvestmentPools = () => {
   const [myContributions, setMyContributions] = useState([]);
@@ -30,31 +29,31 @@ const InvestmentPools = () => {
     const user = FIREBASE_AUTH.currentUser;
     if (user) {
       try {
-        const newPool = {
+        const newPool = new InvestmentPool(
           name,
-          amount,
-          paybacktime: paytime,
-          creatorId: user.uid, // Include the ID of the current user
-        };
-
-        const docRef = await addDoc(
-          collection(FIREBASE_DB, "FriendlyPools"),
-          newPool
+          user.uid,
+          0,
+          interest,
+          paytime,
+          [{ userId: user.uid, amountContributed: 0 }],
+          []
         );
-        console.log("Document written with ID: ", docRef.id);
+        await newPool.saveToFirestore();
 
+        // Reset form and update UI as necessary
         setName("");
         setAmount("");
         setPaytime("");
         setInterest("");
         setModalVisible(false);
+        fetchPools(); // Re-fetch pools to get the updated list
       } catch (error) {
         console.error("Error adding document: ", error);
       }
     } else {
       console.error("No user logged in");
     }
-};
+  };
   const joinPool = async (poolId, contributionAmount) => {
     const user = FIREBASE_AUTH.currentUser;
     if (!user) {
@@ -170,27 +169,40 @@ const dismissKeyboard = () => {
   Keyboard.dismiss();
 };
 
-  useEffect(() => {
-    const fetchPools = async () => {
-      try {
-        const querySnapshot = await getDocs(
-          collection(FIREBASE_DB, "investmentPools")
-        );
-        const fetchedPools = querySnapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
-        setPools(fetchedPools);
-      } catch (error) {
-        console.error("Error fetching pools:", error);
-        // Set an error state or handle the error appropriately
-        // For example, you could set an error message to display to the user
-        setError("Failed to load investment pools.");
-      }
-    };
+useEffect(() => {
+  const fetchPools = async () => {
+    try {
+      const querySnapshot = await getDocs(
+        collection(FIREBASE_DB, "InvestmentPools")
+      );
+      const poolsData = await Promise.all(
+        querySnapshot.docs.map(async (docSnapshot) => {
+          const pool = docSnapshot.data();
+          pool.id = docSnapshot.id; // Attach the ID for key prop usage
+          if (pool.creatorId) {
+            const creatorRef = doc(FIREBASE_DB, "Users", pool.creatorId);
+            const creatorDoc = await getDoc(creatorRef);
+            pool.creatorName = creatorDoc.exists()
+              ? creatorDoc.data().email
+              : "Unknown";
+          } else {
+            pool.creatorName = "Unknown";
+          }
+          return pool;
+        })
+      );
 
-    fetchPools();
-  }, []);
+      // Sort pools by createdAt timestamp, newest first
+      poolsData.sort((a, b) => b.createdAt - a.createdAt);
+
+      setPools(poolsData);
+    } catch (error) {
+      console.error("Error fetching pools: ", error);
+    }
+  };
+
+  fetchPools();
+}, []);
 
   const fetchMyContributions = async () => {
     const userId = FIREBASE_AUTH.currentUser?.uid;
@@ -217,6 +229,7 @@ const dismissKeyboard = () => {
                 poolName: poolData.poolName,
                 amountContributed: userContribution.amount, // Assuming amountContributed is stored in the contributors array
                 totalPoolWorth: poolData.totalAmount, // Assuming totalAmount represents the total pool worth
+                interest: poolData.interestRate,
               };} else {
               return null;
             }
@@ -242,6 +255,7 @@ const dismissKeyboard = () => {
         0
     );
   };
+  
 
   const openPoolDetails = (pool) => {
     setSelectedPool(pool);
@@ -271,16 +285,25 @@ const dismissKeyboard = () => {
             contentContainerStyle={styles.horizontalScroll}
           >
             {pools.map((pool) => (
-              <View key={pool.id} style={styles.pool}>
-                <Text style={styles.poolText}>Name: {pool.name}</Text>
-                <Text style={styles.poolText}>Amount: {pool.amount}</Text>
+              <TouchableOpacity
+                key={pool.id}
+                style={styles.pool}
+                onPress={() => openPoolDetails(pool)}
+              >
+                <Text style={styles.poolText}>Name: {pool.poolName}</Text>
                 <Text style={styles.poolText}>
-                  Payback Time: {pool.paybacktime} days
+                  Pool Worth: £{pool.totalAmount}
+                </Text>
+                <Text style={styles.poolText}>
+                  Interest: {pool.interest}
+                </Text>
+                <Text style={styles.poolText}>
+                  Payback Time: {pool.paybackTime} days
                 </Text>
                 <Text style={styles.poolText}>
                   Pool Creator: {pool.creatorName}
                 </Text>
-              </View>
+              </TouchableOpacity>
             ))}
           </ScrollView>
         </View>
@@ -288,9 +311,9 @@ const dismissKeyboard = () => {
         Review active investment history & returns:
 
 </Text>
-        <View style={styles.myInvestments}>
-          <Text style={styles.sectionTitle}>My Investments</Text>
-        </View>
+        
+        {/* addback my investment later*/}
+
         <Text style={styles.sectionDescription}>
         Insights into investment trends & success rates:
 </Text>
@@ -344,12 +367,75 @@ const dismissKeyboard = () => {
   The Company has no control over, and assumes no responsibility for, the content, privacy policies, or practices of any third-party web sites or services. You further acknowledge and agree that the Company shall not be responsible or liable, directly or indirectly, for any damage or loss caused or alleged to be caused by or in connection with the use of or reliance on any such content, goods, or services available on or through any such web sites or services.
   </Text>
 </View>
+<Modal visible={modalVisible} animationType="slide" transparent={true}>
+        <TouchableWithoutFeedback onPress={dismissKeyboard}>
+          <View style={styles.centeredView}>
+            <View style={styles.modalContainer}>
+              {/* Modal Title */}
+              <Text style={styles.modalTitle}>Create New Pool</Text>
+
+              {/* Name Input */}
+              <TextInput
+                style={styles.inputContainer}
+                placeholder="Pool Name"
+                placeholderTextColor="#888" // Added for better visibility
+                value={name}
+                onChangeText={setName}
+              />
+
+              {/* Paytime Input */}
+              <TextInput
+                style={styles.inputContainer}
+                placeholder="Re-Pay Time (days)"
+                placeholderTextColor="#888" // Added for better visibility
+                keyboardType="numeric"
+                value={paytime}
+                onChangeText={setPaytime}
+              />
+
+              <TextInput
+                style={styles.inputContainer}
+                placeholder="Interest"
+                placeholderTextColor="#888" // Added for better visibility
+                keyboardType="numeric"
+                value={interest}
+                onChangeText={setInterest}
+              />
+
+              {/* Save Button */}
+              <TouchableOpacity
+                style={styles.actionButton}
+                onPress={handleSave}
+              >
+                <Text style={styles.actionButtonText}>Save Pool</Text>
+              </TouchableOpacity>
+
+              {/* Close Modal Button */}
+              <TouchableOpacity
+                style={styles.closeButton}
+                onPress={() => setModalVisible(false)}
+              >
+                <Text style={styles.closeButtonText}>Close</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </TouchableWithoutFeedback>
+      </Modal>
       </ScrollView>
     </View>
   );
 };
 
+const windowWidth = Dimensions.get("window").width;
+
 const styles = StyleSheet.create({
+  pool: {
+    backgroundColor: "rgba(255, 255, 255, 0.5)",
+    padding: 10,
+    borderRadius: 10,
+    marginHorizontal: 5,
+    width: 150,
+  },
   pageContainer: {
     flex: 1,
     backgroundColor: "#022D3B",
@@ -447,6 +533,60 @@ const styles = StyleSheet.create({
     padding: 20,
     borderRadius: 20,
     // Adjust the space between the two child containers if needed
+  },
+
+  modalContainer: {
+    margin: 20,
+    backgroundColor: "white",
+    borderRadius: 20,
+    padding: 35,
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+    width: windowWidth * 0.8, // 80% of window width
+    alignSelf: "center", // This ensures the modal is centered in its parent
+  },
+  modalTitle: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: "#022D3B",
+    marginBottom: 15,
+  },
+  inputContainer: {
+    width: "80%",
+    padding: 10,
+    marginVertical: 10,
+    backgroundColor: "#F0F0F0", // Light grey background for input
+    borderRadius: 10,
+    fontSize: 16,
+  },
+  input: {
+    color: "black",
+  },
+  actionButton: {
+    backgroundColor: "#022D3B",
+    padding: 10,
+    borderRadius: 10,
+    marginVertical: 5,
+    width: "80%",
+    alignItems: "center",
+  },
+  actionButtonText: {
+    color: "white",
+    fontSize: 16,
+    fontWeight: "bold",
+  },
+  centeredView: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    marginTop: 22,
   },
 });
 
