@@ -1,13 +1,19 @@
 import React, { useState, useEffect } from "react";
-import { ScrollView, View, Text, StyleSheet, Dimensions } from "react-native";
+import { ScrollView, View, Text, StyleSheet, Dimensions, Modal, TextInput, TouchableOpacity } from "react-native";
 import { LineChart } from "react-native-chart-kit";
 import Header from "../components/AppHeader";
-import { collection, doc, getDoc } from "firebase/firestore";
+import { collection, doc, getDoc, updateDoc } from "firebase/firestore";
 import { FIREBASE_DB, FIREBASE_AUTH } from "../../firebaseConfig";
 import TouchableScale from "react-native-touchable-scale";
 
 const HomeScreen = ({ navigation }) => {
-  const [totalInvested, setTotalInvested] = useState(0);
+  const [totalAmount, setTotalAmount] = useState(0);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [topUpAmount, setTopUpAmount] = useState("");
+
+  const handleTopUpAmount = (text) => {
+    setTopUpAmount(text);
+  };
 
   useEffect(() => {
     const fetchUserAmount = async () => {
@@ -17,7 +23,7 @@ const HomeScreen = ({ navigation }) => {
         const userData = userSnapshot.data();
         const amount = userData.amount; // Assuming the field name is "amount" in Firestore
 
-        setTotalInvested(amount);
+        setTotalAmount(amount);
       } catch (error) {
         console.log("Error fetching user amount:", error);
       }
@@ -41,13 +47,33 @@ const HomeScreen = ({ navigation }) => {
     ],
   };
 
+  const handleTopUp = async () => {
+    try {
+      // Calculate the new total amount after top-up
+      const newTotalAmount = totalAmount + parseInt(topUpAmount);
+
+      // Update the amount in Firestore
+      const userDoc = doc(FIREBASE_DB, "Users", FIREBASE_AUTH.currentUser.uid);
+      await updateDoc(userDoc, { amount: newTotalAmount });
+
+      // Update the local state
+      setTotalAmount(newTotalAmount);
+
+      // Close the modal
+      setModalVisible(false);
+    } catch (error) {
+      console.log("Error updating user amount:", error);
+    }
+  };
+
+
   return (
     <View style={styles.pageContainer}>
       <Header options={headerOptions} />
       <ScrollView contentContainerStyle={styles.contentContainer}>
         <View style={styles.dashboardSummary}>
           <Text style={styles.sectionTitle}>Dashboard Summary</Text>
-          <Text style={styles.sectionText}>Total Amount: {totalInvested}</Text>
+          <Text style={styles.sectionText}>Total Amount: {totalAmount}</Text>
         </View>
         <View style={styles.notificationsSection}>
           <Text style={styles.sectionTitle}>Notifications</Text>
@@ -60,16 +86,93 @@ const HomeScreen = ({ navigation }) => {
         </View>
         <TouchableScale
           style={styles.plusButton}
-          onPress={() => console.log("Plus button pressed")}
+          onPress={() => setModalVisible(true)}
         >
           <Text style={styles.plusButtonText}>+</Text>
         </TouchableScale>
+
+        <Modal visible={modalVisible} transparent={true} animationType="fade">
+          <View style={styles.modalContainer}>
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>Top-Up Amount</Text>
+              <TextInput
+                style={styles.amountInput}
+                placeholder="Enter amount"
+                onChangeText={handleTopUpAmount}
+                value={topUpAmount}
+                keyboardType="numeric"
+              />
+              <TouchableOpacity
+                style={styles.topUpButton}
+                onPress={handleTopUp}
+              >
+                <Text style={styles.topUpButtonText}>Top Up</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.closeButton}
+                onPress={() => setModalVisible(false)}
+              >
+                <Text style={styles.closeButtonText}>Close</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
+
       </ScrollView>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
+
+  modalContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+  },
+  modalContent: {
+    backgroundColor: "#FFF",
+    padding: 20,
+    borderRadius: 10,
+    alignItems: "center",
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    marginBottom: 10,
+  },
+  amountInput: {
+    width: "100%",
+    height: 40,
+    borderWidth: 1,
+    borderColor: "#CCC",
+    borderRadius: 5,
+    padding: 10,
+    marginBottom: 10,
+  },
+  topUpButton: {
+    backgroundColor: "#009688",
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 5,
+    marginBottom: 10,
+  },
+  topUpButtonText: {
+    color: "#FFF",
+    fontWeight: "bold",
+  },
+  closeButton: {
+    backgroundColor: "#CCC",
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 5,
+  },
+  closeButtonText: {
+    color: "#FFF",
+    fontWeight: "bold",
+  },
+
   plusButton: {
     position: "absolute",
     bottom: 10,
