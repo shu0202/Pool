@@ -84,16 +84,27 @@ const FriendlyPools = () => {
     }
   };
 
-
   const fetchPools = async () => {
     try {
       const querySnapshot = await getDocs(
         collection(FIREBASE_DB, "friendsPools")
       );
-      const poolsData = querySnapshot.docs.map((docSnapshot) => ({
-        id: docSnapshot.id,
-        ...docSnapshot.data(),
-      }));
+      const poolPromises = querySnapshot.docs.map(async (docSnapshot) => {
+        const pool = docSnapshot.data();
+        pool.id = docSnapshot.id;
+
+        // Fetch the creator's email using the creatorId
+        const creatorRef = doc(FIREBASE_DB, "Users", pool.creatorId);
+        const creatorDoc = await getDoc(creatorRef);
+        pool.creatorEmail = creatorDoc.exists()
+          ? creatorDoc.data().email
+          : "Unknown";
+
+        return pool;
+      });
+
+      const poolsData = await Promise.all(poolPromises);
+      poolsData.sort((a, b) => b.createdAt - a.createdAt);
       setPools(poolsData);
     } catch (error) {
       console.error("Error fetching pools: ", error);
@@ -115,39 +126,37 @@ const FriendlyPools = () => {
     }
   };
 
-
   useEffect(() => {
     fetchPools();
   }, []);
 
-
   const handleSave = async () => {
-  const user = FIREBASE_AUTH.currentUser;
-  if (user) {
-    try {
-      const newPool = new FriendlyPool(
-        name,
-        user.uid,
-        0,
-        paytime,
-        [{ userId: user.uid, amountContributed: 0 }],
-        []
-      );
-      await newPool.saveToFirestore();
+    const user = FIREBASE_AUTH.currentUser;
+    if (user) {
+      try {
+        const newPool = new FriendlyPool(
+          name,
+          user.uid,
+          0,
+          paytime,
+          [{ userId: user.uid, amountContributed: 0 }],
+          []
+        );
+        await newPool.saveToFirestore();
 
-      // Reset form and update UI as necessary
-      setName("");
-      setAmount("");
-      setPaytime("");
-      setModalVisible(false);
-      fetchPools(); // Re-fetch pools to get the updated list
-    } catch (error) {
-      console.error("Error adding document: ", error);
+        // Reset form and update UI as necessary
+        setName("");
+        setAmount("");
+        setPaytime("");
+        setModalVisible(false);
+        fetchPools(); // Re-fetch pools to get the updated list
+      } catch (error) {
+        console.error("Error adding document: ", error);
+      }
+    } else {
+      console.error("No user logged in");
     }
-  } else {
-    console.error("No user logged in");
-  }
-};
+  };
 
   const updateContribution = async (poolId, userId, newContributionAmount) => {
     const poolRef = doc(FIREBASE_DB, "friendsPools", poolId);
@@ -163,7 +172,6 @@ const FriendlyPools = () => {
       console.error("Error updating contribution: ", error);
     }
   };
-
 
   const dismissKeyboard = () => {
     Keyboard.dismiss();
@@ -204,42 +212,50 @@ const FriendlyPools = () => {
     fetchPools();
   }, []);
 
-   useEffect(() => {
-     const fetchMyContributions = async () => {
-       const userId = FIREBASE_AUTH.currentUser?.uid;
-       if (!userId) {
-         console.error("User must be logged in to fetch contributions");
-         return;
-       }
+  const fetchMyContributions = async () => {
+    const userId = FIREBASE_AUTH.currentUser?.uid;
+    if (!userId) {
+      console.error("User must be logged in to fetch contributions");
+      return;
+    }
 
-       const querySnapshot = await getDocs(
-         collection(FIREBASE_DB, "friendsPools")
-       );
-       const allPools = querySnapshot.docs.map((docSnapshot) => ({
-         id: docSnapshot.id,
-         ...docSnapshot.data(),
-       }));
+    try {
+      const querySnapshot = await getDocs(
+        collection(FIREBASE_DB, "friendsPools")
+      );
+      const myContributions = querySnapshot.docs
+        .map((docSnapshot) => {
+          const poolData = docSnapshot.data();
+          const contributors = poolData.contributors || [];
+          const userContribution = contributors.find(
+            (contributor) => contributor.userId === userId
+          );
 
-       // Filter pools to find ones where the current user is a contributor
-       const myContributions = allPools.filter(
-         (pool) =>
-           pool.contributors &&
-           pool.contributors.some(
-             (contributor) => contributor.userId === userId
-           )
-       );
+          if (userContribution) {
+            return {
+              id: docSnapshot.id,
+              poolName: poolData.poolName,
+              amountContributed: userContribution.amount, // Assuming amountContributed is stored in the contributors array
+              totalPoolWorth: poolData.totalAmount, // Assuming totalAmount represents the total pool worth
+            };} else {
+            return null;
+          }
+        })
+        .filter(Boolean);
 
-       // Assuming you have a state to store user's contributions
-       setMyContributions(myContributions);
-     };
+      setMyContributions(myContributions);
+    } catch (error) {
+      console.error("Error fetching user contributions:", error);
+    }
+  };
 
-     fetchMyContributions();
-   }, []);
+  useEffect(() => {
+    fetchMyContributions();
+  }, []);
 
-   // Assuming you've authenticated and have the current user's ID
-   const user = FIREBASE_AUTH.currentUser;
-   const userId = user?.uid;
-
+  // Assuming you've authenticated and have the current user's ID
+  const user = FIREBASE_AUTH.currentUser;
+  const userId = user?.uid;
 
   const calculateTotalContributions = (contributions) => {
     return Object.values(contributions).reduce(
@@ -248,12 +264,20 @@ const FriendlyPools = () => {
     );
   };
 
-
   // Open pool details modal
   const openPoolDetails = (pool) => {
     setSelectedPool(pool);
     setPoolModalVisible(true);
   };
+
+  const calculateTotalAmount = (contributors) => {
+    return contributors.reduce(
+      (sum, contributor) => sum + (contributor.amountContributed || 0),
+      0
+    );
+  };
+
+  // Use calculateTotalAmount(pool.contributors) wherever you need the total amount
 
   return (
     <View style={styles.pageContainer}>
@@ -273,7 +297,9 @@ const FriendlyPools = () => {
                 onPress={() => openPoolDetails(pool)}
               >
                 <Text style={styles.poolText}>Name: {pool.poolName}</Text>
-                <Text style={styles.poolText}>Pool Worth: £{pool.totalAmount}</Text>
+                <Text style={styles.poolText}>
+                  Pool Worth: £{pool.totalAmount}
+                </Text>
                 <Text style={styles.poolText}>
                   Payback Time: {pool.paybackTime} days
                 </Text>
@@ -292,7 +318,7 @@ const FriendlyPools = () => {
             showsHorizontalScrollIndicator={true}
             contentContainerStyle={styles.horizontalScroll}
           >
-            {myContributions.map((pool) => {
+            {pools.map((pool) => {
               const userContribution = pool.contributors.find(
                 (contributor) => contributor.userId === userId
               );
@@ -302,7 +328,13 @@ const FriendlyPools = () => {
                     Pool Name: {pool.poolName}
                   </Text>
                   <Text style={styles.contributionText}>
-                    Amount Contributed: £{userContribution?.amountContributed}
+                    Amount Contributed: £{userContribution?.amount}
+                  </Text>
+                  <Text style={styles.contributionText}>
+                    Total Pool Worth: £{pool.totalAmount}
+                  </Text>
+                  <Text style={styles.contributionText}>
+                    Pool Creator: {pool.creatorName}
                   </Text>
                 </View>
               );
@@ -374,7 +406,6 @@ const FriendlyPools = () => {
             <Text style={styles.modalTitle}>{selectedPool.name}</Text>
             {/* Pool details and actions */}
             <Text>Total In Pool: £{selectedPool.totalAmount}</Text>
-            <Text>Total Invested: £</Text>
             <Text>Payback Time: {selectedPool.paybackTime} days</Text>
             <Text>Pool Creator: {selectedPool.creatorName}</Text>
             <TouchableOpacity
