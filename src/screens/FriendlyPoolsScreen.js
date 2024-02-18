@@ -1,8 +1,8 @@
-import React, { useState } from "react";
-import { ScrollView, View, Text, StyleSheet, Modal, TextInput, TouchableOpacity, TouchableWithoutFeedback, Keyboard  } from "react-native";
+import React, { useState, useEffect } from "react";
+import { ScrollView, View, Text, StyleSheet, Modal, TextInput, TouchableOpacity, TouchableWithoutFeedback, Keyboard, Dimensions  } from "react-native";
 import Header from "../components/AppHeader"; // Adjust the import path as necessary
-import { addDoc, collection } from "firebase/firestore";
-import { FIREBASE_DB } from "../../firebaseConfig";
+import { addDoc, getDocs, collection, doc, getDoc } from "firebase/firestore";
+import { FIREBASE_DB, FIREBASE_AUTH } from "../../firebaseConfig";
 
 const FriendlyPools = () => {
   const [modalVisible, setModalVisible] = useState(false);
@@ -10,6 +10,7 @@ const FriendlyPools = () => {
   const [amount, setAmount] = useState('');
   const [paytime, setPaytime] = useState('');
   const [interest, setInterest] = useState('');
+  const [pools, setPools] = useState([]);
 
   const headerOptions = {
     right: [
@@ -21,31 +22,90 @@ const FriendlyPools = () => {
   };
 
   const handleSave = async () => {
-    try {
-      // Create a new document object
-      const newPool = {
-        name: name,
-        amount: amount,
-        paybacktime: paytime,
-      };
+    const user = FIREBASE_AUTH.currentUser;
+    if (user) {
+      try {
+        const newPool = {
+          name,
+          amount,
+          paybacktime: paytime,
+          creatorId: user.uid, // Include the ID of the current user
+        };
 
-      // Add the document to the "FriendlyPool" collection
-      const docRef = await addDoc(collection(FIREBASE_DB, "FriendlyPools"), newPool);
-      console.log("Document written with ID: ", docRef.id);
+        const docRef = await addDoc(
+          collection(FIREBASE_DB, "FriendlyPools"),
+          newPool
+        );
+        console.log("Document written with ID: ", docRef.id);
 
-      // Clear the input fields and close the modal
-      setName('');
-      setAmount('');
-      setPaytime('');
-      setModalVisible(false);
-    } catch (error) {
-      console.error("Error adding document: ", error);
+        setName("");
+        setAmount("");
+        setPaytime("");
+        setModalVisible(false);
+      } catch (error) {
+        console.error("Error adding document: ", error);
+      }
+    } else {
+      console.error("No user logged in");
     }
-  };
+};
+
 
   const dismissKeyboard = () => {
     Keyboard.dismiss();
   };
+
+  useEffect(() => {
+    const fetchPools = async () => {
+      try {
+        // Get the snapshot of the FriendlyPools collection
+        const querySnapshot = await getDocs(
+          collection(FIREBASE_DB, "FriendlyPools")
+        );
+        // Process each document in the snapshot
+        const poolsData = await Promise.all(
+          querySnapshot.docs.map(async (docSnapshot) => {
+            const pool = docSnapshot.data();
+            // Check if creatorId exists and is not undefined
+            if (pool.creatorId) {
+              // Create a reference to the user document
+              const creatorRef = doc(FIREBASE_DB, "Users", pool.creatorId);
+              // Fetch the document
+              const creatorDoc = await getDoc(creatorRef);
+              // Check if the document exists and has an email field
+              if (creatorDoc.exists() && creatorDoc.data().email) {
+                return {
+                  ...pool,
+                  id: docSnapshot.id,
+                  creatorName: creatorDoc.data().email,
+                };
+              } else {
+                return {
+                  ...pool,
+                  id: docSnapshot.id,
+                  creatorName: "Unknown",
+                };
+              }
+            } else {
+              return {
+                ...pool,
+                id: docSnapshot.id,
+                creatorName: "Unknown",
+              };
+            }
+          })
+        );
+        // Update the state with the fetched data
+        setPools(poolsData);
+      } catch (error) {
+        console.error("Error fetching pools: ", error);
+      }
+    };
+
+    fetchPools();
+  }, []);
+
+
 
 
 
@@ -55,7 +115,26 @@ const FriendlyPools = () => {
       <ScrollView contentContainerStyle={styles.contentContainer}>
         <View style={styles.activePools}>
           <Text style={styles.sectionTitle}>Active Pools</Text>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={true}
+            contentContainerStyle={styles.horizontalScroll}
+          >
+            {pools.map((pool) => (
+              <View key={pool.id} style={styles.pool}>
+                <Text style={styles.poolText}>Name: {pool.name}</Text>
+                <Text style={styles.poolText}>Amount: {pool.amount}</Text>
+                <Text style={styles.poolText}>
+                  Payback Time: {pool.paybacktime} days
+                </Text>
+                <Text style={styles.poolText}>
+                  Pool Creator: {pool.creatorName}
+                </Text>
+              </View>
+            ))}
+          </ScrollView>
         </View>
+
         <View style={styles.myContributions}>
           <Text style={styles.sectionTitle}>My Contributions</Text>
         </View>
@@ -67,45 +146,47 @@ const FriendlyPools = () => {
         </View>
       </ScrollView>
       <Modal visible={modalVisible} animationType="slide">
-          <TouchableWithoutFeedback onPress={dismissKeyboard}>
-            <View style={styles.modalContainer}>
-              <Text style={styles.modalTitle}>New Pool</Text>
-              <View style={styles.inputContainer}>
-                <Text style={styles.label}>Name:</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Name"
-                  value={name}
-                  onChangeText={text => setName(text)}
-                />
-              </View>
-              <View style={styles.inputContainer}>
-                <Text style={styles.label}>Amount:</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Amount"
-                  value={amount}
-                  onChangeText={text => setAmount(text)}
-                />
-              </View>
-              <View style={styles.inputContainer}>
-                <Text style={styles.label}>Paytime:</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Paytime"
-                  value={paytime}
-                  onChangeText={text => setPaytime(text)}
-                />
-              </View>
-              <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
-                <Text style={styles.saveButtonText}>Save</Text>
-              </TouchableOpacity>
+        <TouchableWithoutFeedback onPress={dismissKeyboard}>
+          <View style={styles.modalContainer}>
+            <Text style={styles.modalTitle}>New Pool</Text>
+            <View style={styles.inputContainer}>
+              <Text style={styles.label}>Name:</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Name"
+                value={name}
+                onChangeText={(text) => setName(text)}
+              />
             </View>
-          </TouchableWithoutFeedback>
-        </Modal>
+            <View style={styles.inputContainer}>
+              <Text style={styles.label}>Amount:</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Amount"
+                value={amount}
+                onChangeText={(text) => setAmount(text)}
+              />
+            </View>
+            <View style={styles.inputContainer}>
+              <Text style={styles.label}>Paytime:</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Paytime"
+                value={paytime}
+                onChangeText={(text) => setPaytime(text)}
+              />
+            </View>
+            <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
+              <Text style={styles.saveButtonText}>Save</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableWithoutFeedback>
+      </Modal>
     </View>
   );
 };
+
+const windowWidth = Dimensions.get("window").width;
 
 const styles = StyleSheet.create({
   pageContainer: {
@@ -114,6 +195,7 @@ const styles = StyleSheet.create({
   },
   contentContainer: {
     padding: 20,
+    alignItems: "center",
   },
   sectionTitle: {
     fontSize: 18,
@@ -121,30 +203,47 @@ const styles = StyleSheet.create({
     color: "#FFF",
     marginBottom: 10,
   },
+  pool: {
+    backgroundColor: "rgba(255, 255, 255, 0.5)",
+    padding: 10,
+    borderRadius: 10,
+    marginHorizontal: 5, // Add some spacing between items
+    width: 150, // Set a fixed width for each pool item
+    // Add any additional styles you need
+  },
+  poolText: {
+    color: "#022D3B",
+    fontSize: 16,
+  },
   activePools: {
     backgroundColor: "rgba(255, 255, 255, 0.8)",
     padding: 20,
     borderRadius: 20,
     marginBottom: 20,
+    width: "90%",
   },
   myContributions: {
     backgroundColor: "rgba(255, 255, 255, 0.7)",
     padding: 20,
     borderRadius: 20,
     marginBottom: 20,
+    width: "90%",
   },
   pendingRequests: {
     backgroundColor: "rgba(255, 255, 255, 0.6)",
     padding: 20,
     borderRadius: 20,
     marginBottom: 20,
+    width: "90%",
   },
   subPools: {
     backgroundColor: "rgba(255, 255, 255, 0.5)",
     padding: 20,
     borderRadius: 20,
     marginBottom: 20,
+    width: "90%",
   },
+  
   container: {
     flex: 1,
     justifyContent: "center",

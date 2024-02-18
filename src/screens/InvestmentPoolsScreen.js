@@ -1,8 +1,35 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { ScrollView, View, Text, StyleSheet } from "react-native";
-import Header from "../components/AppHeader"; // Ensure this path matches your project structure
+import { collection, getDocs } from "firebase/firestore";
+import { FIREBASE_DB } from "../../firebaseConfig"; // Adjust this path as necessary
+import Header from "../components/AppHeader";
 
 const InvestmentPools = () => {
+  const [pools, setPools] = useState([]); // State to hold fetched pools
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const fetchPools = async () => {
+      try {
+        const querySnapshot = await getDocs(
+          collection(FIREBASE_DB, "investmentPools")
+        );
+        const fetchedPools = querySnapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+        setPools(fetchedPools);
+      } catch (error) {
+        console.error("Error fetching pools:", error);
+        // Set an error state or handle the error appropriately
+        // For example, you could set an error message to display to the user
+        setError("Failed to load investment pools.");
+      }
+    };
+
+    fetchPools();
+  }, []);
+
   const headerOptions = {
     right: [
       {

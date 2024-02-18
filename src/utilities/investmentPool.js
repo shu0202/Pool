@@ -1,24 +1,24 @@
 import { doc, setDoc } from "firebase/firestore"
-import { FIREBASE_DB } from "./firebase";
+import { FIREBASE_DB } from "../..firebaseConfig";
 
 class InvestmentPool {
-    constructor(poolId, creatorId, poolType, totalAmount = 0, interestRate, paybackTime, contributors = [], loanRequests = []) {
-        this.poolId = poolId; // Unique identifier for the pool
+    constructor(investPoolId, creatorId, poolType, totalAmount = 0, interestRate, paybackTime, contributorIds = [], loanRequests = []) {
+        this.investPoolId = investPoolId; // Unique identifier for the pool
         this.creatorId = creatorId; // UserID of the pool creator
         this.totalAmount = totalAmount; // Total amount currently in the pool
         this.interestRate = interestRate; // Interest rate for the pool (applicable for Interest Pools only)
         this.paybackTime = paybackTime; // Expected payback time in days
-        this.contributors = contributors; // Array of objects { userId, amountContributed }
+        this.contributorIds = contributorIds; // Array of objects { userId, amountContributed }
         this.loanRequests = loanRequests || [];
     }
     // Method to add a contributor to the pool
     addContributor(userId, amount) {
         // Check if the user has already contributed to the pool
-        const existingContributor = this.contributors.find(contributor => contributor.userId === userId);
+        const existingContributor = this.contributorIds.find(contributor => contributor.userId === userId);
         if (existingContributor) {
             existingContributor.amountContributed += amount;
         } else {
-            this.contributors.push({ userId, amountContributed: amount });
+            this.contributorIds.push({ userId, amountContributed: amount });
         }
         this.totalAmount += amount;
     }
@@ -36,13 +36,13 @@ class InvestmentPool {
     // Method for a user to contribute to the pool
     contribute(userId, amount) {
         // Check if the user is already a contributor
-        const existingContributor = this.contributors.find(contributor => contributor.userId === userId);
+        const existingContributor = this.contributorIds.find(contributor => contributor.userId === userId);
         if (existingContributor) {
             // Update existing contribution
             existingContributor.amountContributed += amount;
         } else {
             // Add new contributor
-            this.contributors.push({ userId, amountContributed: amount });
+            this.contributorIds.push({ userId, amountContributed: amount });
         }
         // Update the total amount of the pool
         this.totalAmount += amount;
@@ -54,7 +54,7 @@ class InvestmentPool {
             userId: userId,
             amountRequested: amountRequested,
             status: 'Pending', // Initial status of the loan request
-            approvals: [] // Track which contributors have approved this request
+            approvals: [] // Track which contributorIds have approved this request
         };
         this.loanRequests.push(request);
         return request;
@@ -76,7 +76,7 @@ class InvestmentPool {
 
         // Check if the request has enough approvals
         const approvalCount = request.approvals.length;
-        const requiredApprovals = Math.ceil(this.contributors.length / 2); // For example, majority approval
+        const requiredApprovals = Math.ceil(this.contributorIds.length / 2); // For example, majority approval
 
         if (approvalCount >= requiredApprovals) {
             request.status = 'Approved';
@@ -90,22 +90,22 @@ class InvestmentPool {
         const amountToBeRepaid = amount * (1 + this.interestRate * timeInYears);
         return amountToBeRepaid;
     }
-    // Method to calculate and distribute returns to contributors (for Interest Pools)
+    // Method to calculate and distribute returns to contributorIds (for Interest Pools)
     distributeReturns() {
-        this.contributors.forEach(contributor => {
+        this.contributorIds.forEach(contributor => {
             const returnAmount = contributor.amountContributed * (1 + this.interestRate);
             // This function assumes there's a mechanism to update the user's wallet balance
             // updateUserWallet(contributor.userId, returnAmount);
         });
     }
-    // Method to allow contributors to withdraw their contributions before the pool reaches its payback time, assuming the pool rules allow for such withdrawals.
+    // Method to allow contributorIds to withdraw their contributions before the pool reaches its payback time, assuming the pool rules allow for such withdrawals.
     withdrawContribution(userId, amount) {
         // Find the contributor in the pool
-        const contributorIndex = this.contributors.findIndex(contributor => contributor.userId === userId);
+        const contributorIndex = this.contributorIds.findIndex(contributor => contributor.userId === userId);
         if (contributorIndex === -1) {
             throw new Error("Contributor not found.");
         }
-        const contributor = this.contributors[contributorIndex];
+        const contributor = this.contributorIds[contributorIndex];
 
         // Check if the contributor has enough balance to withdraw
         if (contributor.amountContributed < amount) {
@@ -123,13 +123,13 @@ class InvestmentPool {
     // Convert pool object to a database-friendly format
     toFirestore() {
         return {
-            poolId: this.poolId,
+            investPoolId: this.investPoolId,
             creatorId: this.creatorId,
             poolType: this.poolType,
             totalAmount: this.totalAmount,
             interestRate: this.interestRate,
             paybackTime: this.paybackTime,
-            contributors: this.contributors.map(contributor => ({
+            contributorIds: this.contributorIds.map(contributor => ({
                 userId: contributor.userId,
                 amountContributed: contributor.amountContributed
             })),
@@ -146,7 +146,7 @@ class InvestmentPool {
     async saveToFirestore() {
         const poolData = this.toFirestore(); // Use this instance's data
         try {
-            await setDoc(doc(FIREBASE_DB, "investmentPools", this.poolId), poolData);
+            await setDoc(doc(FIREBASE_DB, "investmentPools", this.investPoolId), poolData);
             console.log("InvestmentPool successfully saved to Firestore!");
         } catch (error) {
             console.error("Error saving InvestmentPool to Firestore: ", error);
