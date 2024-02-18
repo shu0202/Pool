@@ -295,7 +295,7 @@ useEffect(() => {
                   Pool Worth: £{pool.totalAmount}
                 </Text>
                 <Text style={styles.poolText}>
-                  Interest: {pool.interest}
+                  Interest: {pool.interestRate}
                 </Text>
                 <Text style={styles.poolText}>
                   Payback Time: {pool.paybackTime} days
@@ -458,6 +458,26 @@ useEffect(() => {
 const windowWidth = Dimensions.get("window").width;
 
 const styles = StyleSheet.create({
+  contributionItem: {
+    // Each contribution item will be styled to appear as cards or tiles
+    backgroundColor: "rgba(255, 255, 255, 0.9)",
+    padding: 10,
+    borderRadius: 10,
+    marginHorizontal: 5,
+    width: 180, // You can adjust the width as needed
+    // Add elevation or shadow for better appearance
+    elevation: 5,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+  },
+  contributionText: {
+    // Style for the text inside each contribution item
+    color: "#022D3B",
+    fontSize: 16,
+    marginBottom: 5, // Add some margin between text elements
+  },
   pool: {
     backgroundColor: "rgba(255, 255, 255, 0.5)",
     padding: 10,
