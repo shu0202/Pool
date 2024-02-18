@@ -312,7 +312,36 @@ useEffect(() => {
 
 </Text>
         
-        {/* addback my investment later*/}
+<View style={styles.myInvestments}>
+          <Text style={styles.sectionTitle}>My Investments</Text>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={true}
+            contentContainerStyle={styles.horizontalScroll}
+          >
+            {pools.map((pool) => {
+              const userContribution = pool.contributors.find(
+                (contributor) => contributor.userId === userId
+              );
+              return (
+                <View key={pool.id} style={styles.contributionItem}>
+                  <Text style={styles.contributionText}>
+                    Pool Name: {pool.poolName}
+                  </Text>
+                  <Text style={styles.contributionText}>
+                    Amount Contributed: £{userContribution?.amount}
+                  </Text>
+                  <Text style={styles.contributionText}>
+                    Total Pool Worth: £{pool.totalAmount}
+                  </Text>
+                  <Text style={styles.contributionText}>
+                    Pool Creator: {pool.creatorName}
+                  </Text>
+                </View>
+              );
+            })}
+          </ScrollView>
+        </View>
 
         <Text style={styles.sectionDescription}>
         Insights into investment trends & success rates:
