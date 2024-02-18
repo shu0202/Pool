@@ -4,6 +4,7 @@ import { LineChart } from "react-native-chart-kit";
 import Header from "../components/AppHeader";
 import { collection, doc, getDoc } from "firebase/firestore";
 import { FIREBASE_DB, FIREBASE_AUTH } from "../../firebaseConfig";
+import TouchableScale from "react-native-touchable-scale";
 
 const HomeScreen = ({ navigation }) => {
   const [totalInvested, setTotalInvested] = useState(0);
@@ -57,13 +58,33 @@ const HomeScreen = ({ navigation }) => {
         <View style={styles.discoverPools}>
           <Text style={styles.sectionTitle}>Discover Pools</Text>
         </View>
-        {/* Rest of the components */}
+        <TouchableScale
+          style={styles.plusButton}
+          onPress={() => console.log("Plus button pressed")}
+        >
+          <Text style={styles.plusButtonText}>+</Text>
+        </TouchableScale>
       </ScrollView>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
+  plusButton: {
+    position: "absolute",
+    bottom: 10,
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: "#009688",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  plusButtonText: {
+    color: "#FFF",
+    fontSize: 24,
+    fontWeight: "bold",
+  },
   pageContainer: {
     flex: 1,
     backgroundColor: "#022D3B",
@@ -107,7 +128,7 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(255, 255, 255, 0.5)",
     padding: 20,
     borderRadius: 20,
-    marginBottom: 20,
+    marginBottom: "20%",
   },
   communityFeatures: {
     width: "90%",
