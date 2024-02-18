@@ -13,6 +13,7 @@ import TouchableScale from "react-native-touchable-scale";
 import { FIREBASE_AUTH, FIREBASE_APP } from "../../firebaseConfig";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { setDoc, doc, collection, getFirestore } from "firebase/firestore";
+import { Image, /* other components */ } from 'react-native';
 
 const SignUpScreen = ({ navigation }) => {
   const [email, setEmail] = useState("");
@@ -45,9 +46,14 @@ const SignUpScreen = ({ navigation }) => {
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
       <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
-        <View style={styles.container}>
+      <View style={styles.container}>
+      {/* Move the Image component here, outside the contentContainer */}
+      <Image
+        source={require('../../assets/app-icon.png')}
+        style={styles.logo}
+      />
           <View style={styles.contentContainer}>
-            <Text style={styles.title}>Create Your New Pool Account!</Text>
+            <Text style={styles.title}>Sign Up to Pool!</Text>
             <TextInput
               style={styles.input}
               placeholder="Email"
@@ -76,7 +82,7 @@ const SignUpScreen = ({ navigation }) => {
 
             <TouchableScale onPress={() => navigation.navigate("Login")}>
               <Text style={styles.switchText}>
-                Already have an account? Login
+                Already have an account? <Text style={styles.boldText}>Login</Text>
               </Text>
             </TouchableScale>
           </View>
@@ -89,19 +95,19 @@ const SignUpScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: "center",
+    justifyContent: "flex-start", // Align items to the start
     alignItems: "center",
     backgroundColor: "#022D3B",
-    padding: 20,
+    paddingTop: 20, // Keep minimal padding to avoid content touching the edges
+    paddingHorizontal: 20,
   },
   contentContainer: {
-    width: "100%", // Ensure the container takes the full width
-    flex: 1,
-    justifyContent: "center",
+    width: "100%",
     alignItems: "center",
+    // Removed justifyContent to avoid pushing content to center vertically
   },
   title: {
-    fontSize: 26,
+    fontSize: 36,
     marginBottom: 30,
     color: "#FFFFFF",
     fontWeight: "bold",
@@ -112,17 +118,17 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 20,
     backgroundColor: "#FFFFFF",
-    borderRadius: 25,
+    borderRadius: 10,
     fontSize: 16,
     color: "#333",
     elevation: 6,
   },
   buttonContainer: {
     marginTop: 20,
-    width: "40%",
-    backgroundColor: "#2ECC40",
-    borderRadius: 25,
-    padding: 15,
+    width: "90%",
+    backgroundColor: "#1BA77C",
+    borderRadius: 10,
+    padding: 12,
     justifyContent: "center",
     alignItems: "center",
     elevation: 7,
@@ -141,6 +147,34 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     fontSize: 16,
   },
+
+  logoContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: '5%', // Adjust the top margin as needed
+    marginBottom: '5%', // Adjust the bottom margin as needed
+  },
+  container: {
+    flex: 1,
+    justifyContent: "flex-start", // Align items to the start of the container
+    alignItems: "center",
+    backgroundColor: "#022D3B",
+    paddingTop: 20, // Adjust this to control space at the top
+    paddingHorizontal: 20,
+  },
+  logo: {
+    height: 100,
+    width: 100,
+    resizeMode: 'contain',
+    marginTop: 70, // Adjust this to control space at the top around the logo
+    marginBottom: 70, // Adjust space between the logo and the contentContainer
+  },
+
+  boldText: {
+    fontWeight: 'bold',
+    // No need to set color or fontSize again unless they are different from switchText
+  },
+  
 });
 
 export default SignUpScreen;
