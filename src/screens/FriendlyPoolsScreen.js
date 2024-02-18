@@ -14,6 +14,7 @@ import {
 import Header from "../components/AppHeader";
 import { addDoc, getDocs, collection, doc, getDoc, arrayUnion, updateDoc } from "firebase/firestore";
 import { FIREBASE_DB, FIREBASE_AUTH } from "../../firebaseConfig";
+import FriendlyPool from "../utilities/friendsPool";
 
 const FriendlyPools = () => {
   const [myContributions, setMyContributions] = useState([]);
@@ -49,7 +50,7 @@ const FriendlyPools = () => {
     };
 
     // Get a reference to the pool
-    const poolRef = doc(FIREBASE_DB, "FriendlyPools", poolId);
+    const poolRef = doc(FIREBASE_DB, "friendsPools", poolId);
 
     try {
       // Atomically add a new contributor to the "contributors" array field
@@ -87,7 +88,7 @@ const FriendlyPools = () => {
   const fetchPools = async () => {
     try {
       const querySnapshot = await getDocs(
-        collection(FIREBASE_DB, "FriendlyPools")
+        collection(FIREBASE_DB, "friendsPools")
       );
       const poolsData = querySnapshot.docs.map((docSnapshot) => ({
         id: docSnapshot.id,
@@ -101,7 +102,7 @@ const FriendlyPools = () => {
 
   const fetchSinglePool = async (poolId) => {
     try {
-      const poolRef = doc(FIREBASE_DB, "FriendlyPools", poolId);
+      const poolRef = doc(FIREBASE_DB, "friendsPools", poolId);
       const poolDoc = await getDoc(poolRef);
       if (poolDoc.exists()) {
         return { id: poolDoc.id, ...poolDoc.data() };
@@ -121,44 +122,35 @@ const FriendlyPools = () => {
 
 
   const handleSave = async () => {
-    const user = FIREBASE_AUTH.currentUser;
-    if (user) {
-      try {
-        // Set the creator's contribution. Here, the key is the user's UID and the value is the amount.
-        const contributions = {
-          [user.uid]: amount, // Assuming 'amount' is the initial contribution by the creator
-        };
+  const user = FIREBASE_AUTH.currentUser;
+  if (user) {
+    try {
+      const newPool = new FriendlyPool(
+        name,
+        user.uid,
+        0,
+        paytime,
+        [{ userId: user.uid, amountContributed: 0 }],
+        []
+      );
+      await newPool.saveToFirestore();
 
-        const newPool = {
-          name,
-          amount,
-          paybacktime: paytime,
-          creatorId: user.uid,
-          createdAt: new Date(),
-          contributions, // Using an object for contributions
-        };
-
-        const docRef = await addDoc(
-          collection(FIREBASE_DB, "FriendlyPools"),
-          newPool
-        );
-        console.log("Document written with ID: ", docRef.id);
-
-        // Reset form and update UI as necessary
-        setName("");
-        setAmount("");
-        setPaytime("");
-        setModalVisible(false);
-      } catch (error) {
-        console.error("Error adding document: ", error);
-      }
-    } else {
-      console.error("No user logged in");
+      // Reset form and update UI as necessary
+      setName("");
+      setAmount("");
+      setPaytime("");
+      setModalVisible(false);
+      fetchPools(); // Re-fetch pools to get the updated list
+    } catch (error) {
+      console.error("Error adding document: ", error);
     }
-  };
+  } else {
+    console.error("No user logged in");
+  }
+};
 
   const updateContribution = async (poolId, userId, newContributionAmount) => {
-    const poolRef = doc(FIREBASE_DB, "FriendlyPools", poolId);
+    const poolRef = doc(FIREBASE_DB, "friendsPools", poolId);
 
     try {
       // Prepare the update object. This uses the Firestore field value syntax to update nested fields.
@@ -181,7 +173,7 @@ const FriendlyPools = () => {
     const fetchPools = async () => {
       try {
         const querySnapshot = await getDocs(
-          collection(FIREBASE_DB, "FriendlyPools")
+          collection(FIREBASE_DB, "friendsPools")
         );
         const poolsData = await Promise.all(
           querySnapshot.docs.map(async (docSnapshot) => {
@@ -221,7 +213,7 @@ const FriendlyPools = () => {
        }
 
        const querySnapshot = await getDocs(
-         collection(FIREBASE_DB, "FriendlyPools")
+         collection(FIREBASE_DB, "friendsPools")
        );
        const allPools = querySnapshot.docs.map((docSnapshot) => ({
          id: docSnapshot.id,
@@ -280,10 +272,10 @@ const FriendlyPools = () => {
                 style={styles.pool}
                 onPress={() => openPoolDetails(pool)}
               >
-                <Text style={styles.poolText}>Name: {pool.name}</Text>
-                <Text style={styles.poolText}>Pool Worth: £{pool.amount}</Text>
+                <Text style={styles.poolText}>Name: {pool.poolName}</Text>
+                <Text style={styles.poolText}>Pool Worth: £{pool.totalAmount}</Text>
                 <Text style={styles.poolText}>
-                  Payback Time: {pool.paybacktime} days
+                  Payback Time: {pool.paybackTime} days
                 </Text>
                 <Text style={styles.poolText}>
                   Pool Creator: {pool.creatorName}
@@ -307,10 +299,10 @@ const FriendlyPools = () => {
               return (
                 <View key={pool.id} style={styles.contributionItem}>
                   <Text style={styles.contributionText}>
-                    Pool Name: {pool.name}
+                    Pool Name: {pool.poolName}
                   </Text>
                   <Text style={styles.contributionText}>
-                    Amount Contributed: £{userContribution?.amount}
+                    Amount Contributed: £{userContribution?.amountContributed}
                   </Text>
                 </View>
               );
@@ -381,9 +373,9 @@ const FriendlyPools = () => {
           <View style={styles.modalContainer}>
             <Text style={styles.modalTitle}>{selectedPool.name}</Text>
             {/* Pool details and actions */}
-            <Text>Total In Pool: {selectedPool.amount}</Text>
-            <Text>Total Invested: </Text>
-            <Text>Payback Time: {selectedPool.paybacktime} days</Text>
+            <Text>Total In Pool: £{selectedPool.totalAmount}</Text>
+            <Text>Total Invested: £</Text>
+            <Text>Payback Time: {selectedPool.paybackTime} days</Text>
             <Text>Pool Creator: {selectedPool.creatorName}</Text>
             <TouchableOpacity
               style={styles.actionButton}
