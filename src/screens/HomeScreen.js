@@ -2,10 +2,28 @@ import React, { useState, useEffect } from "react";
 import { ScrollView, View, Text, StyleSheet, Dimensions } from "react-native";
 import { LineChart } from "react-native-chart-kit";
 import Header from "../components/AppHeader";
-import { fetchInvestmentData } from "../utilities/calcTotalInvest"; // Adjust the import path
+import { collection, doc, getDoc } from "firebase/firestore";
+import { FIREBASE_DB, FIREBASE_AUTH } from "../../firebaseConfig";
 
 const HomeScreen = ({ navigation }) => {
   const [totalInvested, setTotalInvested] = useState(0);
+
+  useEffect(() => {
+    const fetchUserAmount = async () => {
+      try {
+        const userDoc = doc(FIREBASE_DB, "Users", FIREBASE_AUTH.currentUser.uid);
+        const userSnapshot = await getDoc(userDoc);
+        const userData = userSnapshot.data();
+        const amount = userData.amount; // Assuming the field name is "amount" in Firestore
+
+        setTotalInvested(amount);
+      } catch (error) {
+        console.log("Error fetching user amount:", error);
+      }
+    };
+
+    fetchUserAmount();
+  }, []);
 
   const headerOptions = {
     left: [
@@ -22,13 +40,13 @@ const HomeScreen = ({ navigation }) => {
     ],
   };
 
-
   return (
     <View style={styles.pageContainer}>
       <Header options={headerOptions} />
       <ScrollView contentContainerStyle={styles.contentContainer}>
         <View style={styles.dashboardSummary}>
           <Text style={styles.sectionTitle}>Dashboard Summary</Text>
+          <Text style={styles.sectionText}>Total Amount: {totalInvested}</Text>
         </View>
         <View style={styles.notificationsSection}>
           <Text style={styles.sectionTitle}>Notifications</Text>
@@ -39,6 +57,7 @@ const HomeScreen = ({ navigation }) => {
         <View style={styles.discoverPools}>
           <Text style={styles.sectionTitle}>Discover Pools</Text>
         </View>
+        {/* Rest of the components */}
       </ScrollView>
     </View>
   );
