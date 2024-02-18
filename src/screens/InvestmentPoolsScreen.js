@@ -1,15 +1,20 @@
 import React, { useState, useEffect } from "react";
 import { ScrollView, View, Text, StyleSheet, Modal, TextInput, TouchableOpacity, TouchableWithoutFeedback, Keyboard, Dimensions  } from "react-native";
 import Header from "../components/AppHeader"; // Adjust the import path as necessary
-import { addDoc, getDocs, collection, doc, getDoc } from "firebase/firestore";
+import { addDoc, getDocs, collection, doc, getDoc, arrayUnion, updateDoc } from "firebase/firestore";
 import { FIREBASE_DB, FIREBASE_AUTH } from "../../firebaseConfig";
+import InvestmentPool from "../utilities/investmentPool";
+import FriendlyPool from "../utilities/friendsPool";
 
 const InvestmentPools = () => {
+  const [myContributions, setMyContributions] = useState([]);
   const [modalVisible, setModalVisible] = useState(false);
-  const [name, setName] = useState('');
-  const [amount, setAmount] = useState('');
-  const [paytime, setPaytime] = useState('');
-  const [interest, setInterest] = useState('');
+  const [poolModalVisible, setPoolModalVisible] = useState(false);
+  const [selectedPool, setSelectedPool] = useState({});
+  const [name, setName] = useState("");
+  const [amount, setAmount] = useState("");
+  const [paytime, setPaytime] = useState("");
+  const [interest, setInterest] = useState("");
   const [pools, setPools] = useState([]); // State to hold fetched pools
 
   const headerOptions = {
@@ -50,6 +55,116 @@ const InvestmentPools = () => {
       console.error("No user logged in");
     }
 };
+  const joinPool = async (poolId, contributionAmount) => {
+    const user = FIREBASE_AUTH.currentUser;
+    if (!user) {
+      console.error("User must be logged in to join a pool");
+      return;
+    }
+
+    // Construct contributor object
+    const newContributor = {
+      userId: user.uid,
+      amount: 0,
+    };
+
+    // Get a reference to the pool
+    const poolRef = doc(FIREBASE_DB, "InvestmentPools", poolId);
+
+    try {
+      // Atomically add a new contributor to the "contributors" array field
+      await updateDoc(poolRef, {
+        contributors: arrayUnion(newContributor),
+      });
+      console.log("User successfully joined pool");
+
+      // Close the modal
+      setPoolModalVisible(false);
+
+      // Fetch the updated pool data and update the state
+      const updatedPool = await fetchSinglePool(poolId);
+      setPools((prevPools) =>
+          prevPools.map((pool) => (pool.id === poolId ? updatedPool : pool))
+      );
+
+      // Optionally, if you want to update the 'myContributions' state as well:
+      setMyContributions((prevContributions) => {
+        const existing = prevContributions.find((p) => p.id === poolId);
+        if (existing) {
+          return prevContributions.map((p) =>
+              p.id === poolId ? updatedPool : p
+          );
+        } else {
+          return [...prevContributions, updatedPool];
+        }
+      });
+    } catch (error) {
+      console.error("Error joining pool: ", error);
+    }
+  };
+
+  const fetchPools = async () => {
+    try {
+      const querySnapshot = await getDocs(
+          collection(FIREBASE_DB, "InvestmentPools")
+      );
+      const poolPromises = querySnapshot.docs.map(async (docSnapshot) => {
+        const pool = docSnapshot.data();
+        pool.id = docSnapshot.id;
+
+        // Fetch the creator's email using the creatorId
+        const creatorRef = doc(FIREBASE_DB, "Users", pool.creatorId);
+        const creatorDoc = await getDoc(creatorRef);
+        pool.creatorEmail = creatorDoc.exists()
+            ? creatorDoc.data().email
+            : "Unknown";
+
+        return pool;
+      });
+
+      const poolsData = await Promise.all(poolPromises);
+      poolsData.sort((a, b) => b.createdAt - a.createdAt);
+      setPools(poolsData);
+    } catch (error) {
+      console.error("Error fetching pools: ", error);
+    }
+  };
+
+  const fetchSinglePool = async (poolId) => {
+    try {
+      const poolRef = doc(FIREBASE_DB, "InvestmentPools", poolId);
+      const poolDoc = await getDoc(poolRef);
+      if (poolDoc.exists()) {
+        return { id: poolDoc.id, ...poolDoc.data() };
+      } else {
+        throw new Error("Pool does not exist.");
+      }
+    } catch (error) {
+      console.error("Error fetching single pool: ", error);
+      throw error;
+    }
+  };
+
+  useEffect(() => {
+    fetchPools();
+  }, []);
+
+
+
+  const updateContribution = async (poolId, userId, newContributionAmount) => {
+    const poolRef = doc(FIREBASE_DB, "InvestmentPools", poolId);
+
+    try {
+      // Prepare the update object. This uses the Firestore field value syntax to update nested fields.
+      const updateObject = {};
+      updateObject[`contributions.${userId}`] = newContributionAmount;
+
+      await updateDoc(poolRef, updateObject);
+      console.log("Contribution updated successfully");
+    } catch (error) {
+      console.error("Error updating contribution: ", error);
+    }
+  };
 
 const dismissKeyboard = () => {
   Keyboard.dismiss();
@@ -77,6 +192,68 @@ const dismissKeyboard = () => {
     fetchPools();
   }, []);
 
+  const fetchMyContributions = async () => {
+    const userId = FIREBASE_AUTH.currentUser?.uid;
+    if (!userId) {
+      console.error("User must be logged in to fetch contributions");
+      return;
+    }
+
+    try {
+      const querySnapshot = await getDocs(
+          collection(FIREBASE_DB, "InvestmentPools")
+      );
+      const myContributions = querySnapshot.docs
+          .map((docSnapshot) => {
+            const poolData = docSnapshot.data();
+            const contributors = poolData.contributors || [];
+            const userContribution = contributors.find(
+                (contributor) => contributor.userId === userId
+            );
+
+            if (userContribution) {
+              return {
+                id: docSnapshot.id,
+                poolName: poolData.poolName,
+                amountContributed: userContribution.amount, // Assuming amountContributed is stored in the contributors array
+                totalPoolWorth: poolData.totalAmount, // Assuming totalAmount represents the total pool worth
+              };} else {
+              return null;
+            }
+          })
+          .filter(Boolean);
+
+      setMyContributions(myContributions);
+    } catch (error) {
+      console.error("Error fetching user contributions:", error);
+    }
+  };
+  useEffect(() => {
+    fetchMyContributions();
+  }, []);
+
+  // Assuming you've authenticated and have the current user's ID
+  const user = FIREBASE_AUTH.currentUser;
+  const userId = user?.uid;
+
+  const calculateTotalContributions = (contributions) => {
+    return Object.values(contributions).reduce(
+        (total, amount) => total + amount,
+        0
+    );
+  };
+
+  const openPoolDetails = (pool) => {
+    setSelectedPool(pool);
+    setPoolModalVisible(true);
+  };
+
+  const calculateTotalAmount = (contributors) => {
+    return contributors.reduce(
+        (sum, contributor) => sum + (contributor.amountContributed || 0),
+        0
+    );
+  };
 
   return (
     <View style={styles.pageContainer}>
