@@ -1,6 +1,6 @@
 import { doc, setDoc, getDoc, updateDoc } from "firebase/firestore";
 import { FIREBASE_DB } from "../../firebaseConfig";
-import Transaction from "../../transaction.js";
+import Transaction from "../utilities/transaction";
 
 class TransactionManager {
     // Create a new transaction and save it to Firestore
