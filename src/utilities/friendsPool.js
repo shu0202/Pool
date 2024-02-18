@@ -46,9 +46,9 @@ class FriendsPool {
       (contrib) => contrib.userId === userId
     );
     if (contributorIndex !== -1) {
-      this.contributors[contributorIndex].amountContributed += amount;
+      this.contributors[contributorIndex].amount += amount;
     } else {
-      this.contributors.push({ userId, amountContributed: amount });
+      this.contributors.push({ userId, amount: amount });
     }
     this.totalAmount += amount;
 
@@ -61,13 +61,13 @@ class FriendsPool {
     );
     if (
       contributorIndex === -1 ||
-      this.contributors[contributorIndex].amountContributed < amount
+      this.contributors[contributorIndex].amount < amount
     ) {
       throw new Error(
         "Insufficient contribution amount or contributor not found."
       );
     }
-    this.contributors[contributorIndex].amountContributed -= amount;
+    this.contributors[contributorIndex].amount -= amount;
     this.totalAmount -= amount;
 
     await this.saveToFirestore();
@@ -77,6 +77,7 @@ class FriendsPool {
     return `req-${Math.random().toString(36).substr(2, 9)}`;
   }
 
+  
   requestLoan(userId, amountRequested) {
     const requestId = this.generateRequestId();
     const loanRequest = {
@@ -86,6 +87,97 @@ class FriendsPool {
       status: "Pending",
       approvals: {},
     };
+
+    addToPool = async (poolId, userId, amount) => {
+      try {
+        // Retrieve the pool from Firestore
+        const poolRef = doc(FIREBASE_DB, "friendsPools", poolId);
+        const poolDoc = await getDoc(poolRef);
+        if (!poolDoc.exists()) {
+          throw new Error("Pool does not exist.");
+        }
+        const poolData = poolDoc.data();
+
+        // Create an instance of FriendsPool with the retrieved data
+        const pool = new FriendsPool(
+          poolData.poolName,
+          poolData.creatorId,
+          poolData.totalAmount,
+          poolData.paybackTime,
+          poolData.contributors,
+          poolData.loanRequests
+        );
+
+        // Add the contributor
+        await pool.addContributor(userId, amount);
+
+        // Optionally, update local state or UI as needed
+        // ...
+      } catch (error) {
+        console.error("Error adding to pool: ", error);
+      }
+    };
+
+    withdrawFromPool = async (poolId, userId, amount) => {
+      try {
+        // Retrieve the pool from Firestore
+        const poolRef = doc(FIREBASE_DB, "friendsPools", poolId);
+        const poolDoc = await getDoc(poolRef);
+        if (!poolDoc.exists()) {
+          throw new Error("Pool does not exist.");
+        }
+        const poolData = poolDoc.data();
+
+        // Create an instance of FriendsPool with the retrieved data
+        const pool = new FriendsPool(
+          poolData.poolName,
+          poolData.creatorId,
+          poolData.totalAmount,
+          poolData.paybackTime,
+          poolData.contributors,
+          poolData.loanRequests
+        );
+
+        // Withdraw the contribution
+        await pool.withdrawContribution(userId, amount);
+
+        // Optionally, update local state or UI as needed
+        // ...
+      } catch (error) {
+        console.error("Error withdrawing from pool: ", error);
+      }
+    };
+
+    borrowFromPool = async (poolId, userId, amountRequested) => {
+      try {
+        // Retrieve the pool from Firestore
+        const poolRef = doc(FIREBASE_DB, "friendsPools", poolId);
+        const poolDoc = await getDoc(poolRef);
+        if (!poolDoc.exists()) {
+          throw new Error("Pool does not exist.");
+        }
+        const poolData = poolDoc.data();
+
+        // Create an instance of FriendsPool with the retrieved data
+        const pool = new FriendsPool(
+          poolData.poolName,
+          poolData.creatorId,
+          poolData.totalAmount,
+          poolData.paybackTime,
+          poolData.contributors,
+          poolData.loanRequests
+        );
+
+        // Request a loan
+        const requestId = pool.requestLoan(userId, amountRequested);
+
+        // Optionally, update local state or UI as needed
+        // ...
+      } catch (error) {
+        console.error("Error requesting loan from pool: ", error);
+      }
+    };
+
 
     // Initialize approval flags for all contributors except the requester
     this.contributors.forEach(({ userId: contributorId }) => {
