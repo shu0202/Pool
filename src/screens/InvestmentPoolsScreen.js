@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { ScrollView, View, Text, StyleSheet, Modal, TextInput, TouchableOpacity, TouchableWithoutFeedback, Keyboard, Dimensions  } from "react-native";
+import { ScrollView, View, Text, StyleSheet, Modal, TextInput, TouchableOpacity, TouchableWithoutFeedback, Button, Keyboard, Dimensions  } from "react-native";
 import Header from "../components/AppHeader"; // Adjust the import path as necessary
 import { addDoc, getDocs, collection, doc, getDoc, arrayUnion, updateDoc } from "firebase/firestore";
 import { FIREBASE_DB, FIREBASE_AUTH } from "../../firebaseConfig";
@@ -8,13 +8,21 @@ import InvestmentPool from "../utilities/investmentPool";
 const InvestmentPools = () => {
   const [myContributions, setMyContributions] = useState([]);
   const [modalVisible, setModalVisible] = useState(false);
+  const [investModalVisible, setInvestModalVisible] = useState(false);
   const [poolModalVisible, setPoolModalVisible] = useState(false);
   const [selectedPool, setSelectedPool] = useState({});
   const [name, setName] = useState("");
   const [amount, setAmount] = useState("");
+  const [investAmount, setInvestAmount] = useState('');
   const [paytime, setPaytime] = useState("");
   const [interest, setInterest] = useState("");
   const [pools, setPools] = useState([]); // State to hold fetched pools
+
+  const handleConfirm = () => {
+    // Perform any necessary validation or processing
+    // before calling the onConfirm callback
+    onConfirm(investAmount);
+  };
 
   const headerOptions = {
     right: [
@@ -54,6 +62,7 @@ const InvestmentPools = () => {
       console.error("No user logged in");
     }
   };
+
   const joinPool = async (poolId, contributionAmount) => {
     const user = FIREBASE_AUTH.currentUser;
     if (!user) {
@@ -248,6 +257,11 @@ useEffect(() => {
   // Assuming you've authenticated and have the current user's ID
   const user = FIREBASE_AUTH.currentUser;
   const userId = user?.uid;
+
+  const handleInvestPressed = () => {
+    setInvestModalVisible(true);
+    setPoolModalVisible(false);
+  }
 
   const calculateTotalContributions = (contributions) => {
     return Object.values(contributions).reduce(
@@ -450,6 +464,70 @@ useEffect(() => {
           </View>
         </TouchableWithoutFeedback>
       </Modal>
+      
+      <Modal visible={investModalVisible} animationType="slide" transparent={true}>
+      <View style={styles.centeredView}>
+        <View style={styles.investModalContainer}>
+          <View style={styles.modalContent}>
+            <TextInput
+              style={styles.input}
+              placeholder="Amount"
+              keyboardType="numeric"
+              value={investAmount}
+              onChangeText={setInvestAmount}
+            />
+            <View style={styles.buttonContainer}>
+            <TouchableOpacity
+                  style={styles.confirmButton}
+                  onPress={() => handleConfirm}
+                >
+                  <Text style={styles.actionButtonText}>Confirm</Text>
+                </TouchableOpacity>
+              <TouchableOpacity
+                  style={styles.closeButton}
+                  onPress={() => setInvestModalVisible(false)}
+                >
+                  <Text style={styles.closeButtonText}>Close</Text>
+                </TouchableOpacity>
+            </View>
+            </View>
+          </View>
+          </View>  
+    </Modal>
+
+      <Modal
+        visible={poolModalVisible}
+        animationType="slide"
+        onRequestClose={() => setPoolModalVisible(false)}
+        transparent={true} // Ensures the modal's background is transparent
+      >
+        <View style={styles.centeredView}>
+          <View style={styles.modalContainer}>
+            <Text style={styles.modalTitle}>{selectedPool.name}</Text>
+            {/* Pool details and actions */}
+            <Text>Total In Pool: £{selectedPool.totalAmount}</Text>
+            <Text>Payback Time: {selectedPool.paybackTime} days</Text>
+            <Text>Pool Creator: {selectedPool.creatorName}</Text>
+            <TouchableOpacity
+              style={styles.actionButton}
+              onPress={() =>
+                handleInvestPressed()
+              }
+            >
+              <Text style={styles.actionButtonText}>INVEST</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() => 
+                setPoolModalVisible(false)
+              }
+              style={styles.closeButton}
+            >
+              <Text style={styles.closeButtonText}>Close</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
       </ScrollView>
     </View>
   );
@@ -458,6 +536,19 @@ useEffect(() => {
 const windowWidth = Dimensions.get("window").width;
 
 const styles = StyleSheet.create({
+  closeButton: {
+    marginTop: 15,
+    backgroundColor: "grey",
+    padding: 10,
+    borderRadius: 10,
+    width: "80%",
+    alignItems: "center",
+  },
+  closeButtonText: {
+    color: "white",
+    fontSize: 16,
+    fontWeight: "bold",
+  },
   contributionItem: {
     // Each contribution item will be styled to appear as cards or tiles
     backgroundColor: "rgba(255, 255, 255, 0.9)",
@@ -603,6 +694,25 @@ const styles = StyleSheet.create({
     width: windowWidth * 0.8, // 80% of window width
     alignSelf: "center", // This ensures the modal is centered in its parent
   },
+
+  investModalContainer: {
+    margin: 20,
+    backgroundColor: "white",
+    borderRadius: 20,
+    padding: 35,
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+    width: windowWidth * 0.8, // 80% of window width
+    alignSelf: "center", // This ensures the modal is centered in its parent
+  },
+
   modalTitle: {
     fontSize: 24,
     fontWeight: "bold",
@@ -626,6 +736,14 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     marginVertical: 5,
     width: "80%",
+    alignItems: "center",
+  },
+  confirmButton: {
+    backgroundColor: "#022D3B",
+    padding: 10,
+    borderRadius: 10,
+    marginVertical: 5,
+    width: "100%",
     alignItems: "center",
   },
   actionButtonText: {
