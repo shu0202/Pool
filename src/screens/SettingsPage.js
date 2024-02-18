@@ -14,8 +14,16 @@ const SettingsPage = ({ navigation }) => {
       });
   };
 
+  const handleGoBack = () => {
+    navigation.navigate("Inside"); // Replace "Home" with the name of your home screen component
+  };
+
+
   return (
     <View style={styles.container}>
+      <TouchableOpacity onPress={handleGoBack} style={styles.backButton}>
+        <Text style={styles.backButtonText}>Back</Text>
+      </TouchableOpacity>
       <Text style={styles.title}>Settings</Text>
       <TouchableOpacity onPress={handleLogOut} style={styles.logoutButton}>
         <Text style={styles.logoutButtonText}>Log Out</Text>
@@ -25,6 +33,23 @@ const SettingsPage = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
+  backButton: {
+    position: "absolute",
+    top: 20,
+    left: 20,
+    padding: 10,
+    borderRadius: 20,
+    elevation: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    backgroundColor: "#DDDDDD",
+  },
+  backButtonText: {
+    color: "#000",
+    fontWeight: "bold",
+  },
   container: {
     flex: 1,
     justifyContent: "center",
