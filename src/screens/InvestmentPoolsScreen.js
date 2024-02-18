@@ -464,8 +464,9 @@ const styles = StyleSheet.create({
     padding: 10,
     borderRadius: 10,
     marginHorizontal: 5,
-    width: 180, // You can adjust the width as needed
+    width: 200, // You can adjust the width as needed
     // Add elevation or shadow for better appearance
+    height: 130,
     elevation: 5,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
@@ -483,7 +484,8 @@ const styles = StyleSheet.create({
     padding: 10,
     borderRadius: 10,
     marginHorizontal: 5,
-    width: 150,
+    width: 200,
+    height: 120,
   },
   pageContainer: {
     flex: 1,
