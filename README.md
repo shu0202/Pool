@@ -4,9 +4,9 @@
 
 ## Core Features
 
-- **Investment Pool** 
-- **Friendly Pools**
-- **Account System** 
+- **Investment Pool:** Simplify your collective investments. 
+- **Friendly Pools:** Easily manage shared expenses with friends and family.
+- **Account System:** Secure and user-friendly management of your investments.
 
 ## Technologies Used
 - **Programming Language:** JavaScript(ES6+)
