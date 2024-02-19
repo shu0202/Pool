@@ -7,13 +7,11 @@
 - **Investment Pool** 
 - **Friendly Pools**
 - **Account System** 
-- **SignUp** 
-- **Login**
 
 ## Technologies Used
 - **Programming Language:** JavaScript(ES6+)
 - **Frameworks:** React, React-Native, Expo
-- **Additional Tools:** Node.js, Git, firebase
+- **Additional Tools:** Node.js, Git, Firebase
   
 ## Demo Video
 Explore the features of "Pool" through our demonstration video. Click on the image below to view the video on YouTube:
@@ -40,6 +38,13 @@ If that does not work, visit the link here: [Pool Demonstration Video on YouTube
 ## Usage
 
 After setting up the project, use `npx expo start` to run the app. Scan the provided QR code with the Expo Go app on your mobile device to view the application.
+
+## Developers
+
+- Daniel Favour Oshidero
+- Yan Chun (Ivan) Yeung
+- Marat Danyarov
+- Sarah Binesmael
 
 ## Contributing
 
